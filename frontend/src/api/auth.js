@@ -1,0 +1,17 @@
+// src/api/auth.js
+import axios from 'axios';
+
+const API = axios.create({
+  baseURL: 'http://localhost:5000/api',
+});
+
+export async function login({ email, password }) {
+  const res = await API.post('/auth/login', { email, password });
+  return res.data;
+}
+
+export async function signup({ fullname, email, password, confirmPassword, role }) {
+  console.log("SIGNUP REQUEST BODY:", { fullname, email, password, confirmPassword, role });
+  const res = await API.post('/auth/signup', { fullname, email, password, confirmPassword, role });
+  return res.data;
+}
