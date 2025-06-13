@@ -17,6 +17,11 @@ import { AuthContext } from '../context/AuthContext';
       <h1>Welcome, {user?.fullname || 'User'}!</h1>
       <p>Your role: {user?.role || 'N/A'}</p>
        <p>This is your dashboard. Implement appointment features here.</p>
+       {user?.role === 'patient' && (
+         <button onClick={() => navigate('/search')} style={{ marginRight: '10px' }}>
+           Find a Doctor
+         </button>
+       )}
        <button onClick={handleLogout}>Log Out</button>
      </div>
    );

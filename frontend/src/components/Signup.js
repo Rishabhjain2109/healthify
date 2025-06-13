@@ -3,18 +3,29 @@ import { signup } from '../api/auth';
 import { useNavigate, Link } from 'react-router-dom';
 
 function Signup() {
-  const [formData, setFormData] = useState({ fullname: '', email: '', password: '', confirmPassword: '', role: '' });
+  const [formData, setFormData] = useState({
+    fullname: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    role: '',
+    specialty: ''
+  });
+  
+  
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     try {
+      console.log('Submitting form data:', formData);
       const data = await signup(formData);
       if (data.message) {
         setError(data.message);
@@ -52,9 +63,27 @@ function Signup() {
           <option value="doctor">Doctor</option>
         </select>
 
-        <button type="submit">Create Account</button>
-        {error && <p style={styles.error}>{error}</p>}
-      </form>
+{formData.role === 'doctor' && (
+  <>
+    <label>Specialty</label>
+    <select name="specialty" value={formData.specialty} onChange={handleChange} required>
+      <option value="" disabled>Select specialty</option>
+      <option value="Cardiologist">Cardiologist</option>
+      <option value="Neurologist">Neurologist</option>
+      <option value="Dermatologist">Dermatologist</option>
+      <option value="Orthopedic">Orthopedic</option>
+      <option value="Pediatrician">Pediatrician</option>
+      <option value="Psychiatrist">Psychiatrist</option>
+      <option value="Oncologist">Oncologist</option>
+      <option value="ENT">ENT</option>
+    </select>
+  </>
+)}
+
+
+  <button type="submit">Create Account</button>
+  {error && <p style={styles.error}>{error}</p>}
+</form>
 
       <p>
         Already have an account? <Link to="/login">Log In</Link>

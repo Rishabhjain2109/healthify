@@ -10,11 +10,18 @@ dotenv.config();
 // Signup route
 router.post('/signup', async (req, res) => {
   console.log('Received signup body:', req.body);
-  const { fullname, email, password, confirmPassword, role } = req.body;
+  console.log('Specialty received:', req.body.specialty);
+
+  const { fullname, email, password, confirmPassword, role, specialty } = req.body;
+
 
   if (!fullname || !email || !password || !confirmPassword || !role) {
     return res.status(400).json({ message: 'All fields are required.' });
   }
+  if (role === 'doctor' && !specialty) {
+    return res.status(400).json({ message: 'Specialty is required for doctors.' });
+  }
+  
   if (password !== confirmPassword) {
     return res.status(400).json({ message: "Passwords don't match." });
   }
@@ -30,7 +37,17 @@ router.post('/signup', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashed = await bcrypt.hash(password, salt);
 
-    const newUser = new User({ fullname, email, password: hashed, role });
+    // const newUser = new User({ fullname, email, password: hashed, role });
+    const newUser = new User({ 
+      fullname,
+      email,
+      password: hashed,
+      role,
+      specialty: role === 'doctor' ? specialty : undefined
+    });
+    
+    
+
     await newUser.save();
 
     const payload = { userId: newUser._id, role: newUser.role };
@@ -59,7 +76,16 @@ router.post('/login', async (req, res) => {
     const payload = { userId: user._id, role: user.role };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-    res.json({ token, user: { id: user._id, fullname: user.fullname, email: user.email, role: user.role } });
+    res.json({ 
+      token, 
+      user: { 
+        id: user._id, 
+        fullname: user.fullname, 
+        email: user.email, 
+        role: user.role,
+        specialty: user.specialty 
+      } 
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error.' });
