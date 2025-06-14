@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('./models/User');
+const Doctor = require('./models/Doctor');
 
 const specialties = [
   'Cardiologist', 'Neurologist', 'Dermatologist', 'Orthopedic',
@@ -39,7 +40,7 @@ async function seedDoctors() {
     });
   }
 
-  await User.insertMany(doctors);
+  await Doctor.insertMany(doctors);
   console.log('100 fake doctors seeded!');
   mongoose.disconnect();
 }

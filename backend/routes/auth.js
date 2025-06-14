@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const Doctor = require('../models/Doctor');
+const Patient = require('../models/Patient');
 const dotenv = require('dotenv');
 
 dotenv.config();
@@ -28,8 +29,9 @@ router.post('/signup', async (req, res) => {
 
   try {
     // Check if user exists
-    let existing = await User.findOne({ email });
-    if (existing) {
+    let existing1 = await Doctor.findOne({ email });
+    let existing2 = await Patient.findOne({ email });
+    if (existing1 || existing2) {
       return res.status(400).json({ message: 'Email already registered.' });
     }
 
@@ -38,22 +40,36 @@ router.post('/signup', async (req, res) => {
     const hashed = await bcrypt.hash(password, salt);
 
     // const newUser = new User({ fullname, email, password: hashed, role });
-    const newUser = new User({ 
-      fullname,
-      email,
-      password: hashed,
-      role,
-      specialty: role === 'doctor' ? specialty : undefined
-    });
-    
-    
 
-    await newUser.save();
+    if(role === 'doctor'){
+      const newDoctor = new Doctor({
+        fullname,
+        email,
+        password: hashed,
+        specialty,
+      })
+      console.log(newDoctor);
 
-    const payload = { userId: newUser._id, role: newUser.role };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
+      await newDoctor.save();
 
-    res.status(201).json({ token, user: { id: newUser._id, fullname: newUser.fullname, email: newUser.email, role: newUser.role } });
+      const payload = { userId: newDoctor._id, role: newDoctor.role };
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
+      res.status(201).json({ token, user: { id: newDoctor._id, fullname: newDoctor.fullname, email: newDoctor.email, role: newDoctor.role } });
+    }else{
+      const newPatient = new Patient({
+        fullname,
+        email,
+        password: hashed,
+      })
+      console.log(newPatient);
+      
+      await newPatient.save();
+
+      const payload = { userId: newPatient._id, role: newPatient.role };
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
+      res.status(201).json({ token, user: { id: newPatient._id, fullname: newPatient.fullname, email: newPatient.email, role: newPatient.role } });
+    }
+
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error.' });
@@ -62,29 +78,42 @@ router.post('/signup', async (req, res) => {
 
 // Login route
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
+  const { email, password, role } = req.body;
+  if (!email || !password || !role) {
     return res.status(400).json({ message: 'Email and password required.' });
   }
   try {
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: 'Invalid credentials.' });
+    let user;
+    
+    if (role === 'doctor') {
+      user = await Doctor.findOne({ email });
+    } else if (role === 'patient') {
+      user = await Patient.findOne({ email });
+    } else {
+      return res.status(400).json({ message: 'Invalid role provided.' });
+    }
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid credentials.' });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials.' });
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid credentials.' });
+    }
 
     const payload = { userId: user._id, role: user.role };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-    res.json({ 
-      token, 
-      user: { 
-        id: user._id, 
-        fullname: user.fullname, 
-        email: user.email, 
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        fullname: user.fullname,
+        email: user.email,
         role: user.role,
-        specialty: user.specialty 
-      } 
+        ...(user.specialty && { specialty: user.specialty }) // Only include if exists
+      }
     });
   } catch (err) {
     console.error(err.message);

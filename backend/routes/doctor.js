@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
+const Doctor = require('../models/Doctor');
 
 // Simple keyword to specialty mapping
 const keywordToSpecialty = {
@@ -37,7 +37,7 @@ router.get('/search', async (req, res) => {
   console.log('Doctor search criteria:', JSON.stringify(searchCriteria, null, 2));
 
   try {
-    const doctors = await User.find(searchCriteria).select('-password');
+    const doctors = await Doctor.find(searchCriteria).select('-password');
     console.log('Doctors found:', doctors.length);
     res.json({ doctors });
   } catch (err) {

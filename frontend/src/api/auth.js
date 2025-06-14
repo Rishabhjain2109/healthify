@@ -5,8 +5,8 @@ const API = axios.create({
   baseURL: 'http://localhost:5000/api',
 });
 
-export async function login({ email, password }) {
-  const res = await API.post('/auth/login', { email, password });
+export async function login({ email, password, role }) {
+  const res = await API.post('/auth/login', { email, password, role });
   return res.data;
 }
 
