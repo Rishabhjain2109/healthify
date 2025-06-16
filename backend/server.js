@@ -2,6 +2,9 @@ const dotenv = require('dotenv');
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
+// in backend/server.js
+const profileRoutes = require('./routes/profile');
+
 
 dotenv.config();
 connectDB();
@@ -14,7 +17,7 @@ app.use(express.json());
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/doctors', require('./routes/doctor'));
-
+app.use('/api/profile', profileRoutes);
 
 app.get('/', (req, res) => {
   res.send('Healthify Backend Running');

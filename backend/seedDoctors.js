@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const User = require('./models/User');
 const Doctor = require('./models/Doctor');
+require('dotenv').config();
 
 const specialties = [
   'Cardiologist', 'Neurologist', 'Dermatologist', 'Orthopedic',
@@ -22,30 +22,64 @@ function getRandomSpecialty() {
   return specialties[Math.floor(Math.random() * specialties.length)];
 }
 
-async function seedDoctors() {
-  await mongoose.connect('mongodb+srv://healthify:K4NnGWZiwvcXBm5D@cluster0.jbx8jbu.mongodb.net/healthify?retryWrites=true&w=majority&appName=Cluster0', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  });
-
-  const doctors = [];
-  for (let i = 1; i <= 100; i++) {
-    const password = await bcrypt.hash('password123', 10);
-    doctors.push({
-      fullname: getRandomName(),
-      email: getRandomEmail(i),
-      password,
-      role: 'doctor',
-      specialty: getRandomSpecialty(),
-    });
-  }
-
-  await Doctor.insertMany(doctors);
-  console.log('100 fake doctors seeded!');
-  mongoose.disconnect();
+function getRandomExperience() {
+  return Math.floor(Math.random() * 20) + 1; // 1-20 years
 }
 
-seedDoctors().catch(err => {
-  console.error(err);
-  mongoose.disconnect();
-});
+async function seedDoctors() {
+  try {
+    // Connect to MongoDB
+    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/healthify';
+    console.log('Connecting to MongoDB...');
+    await mongoose.connect(mongoURI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log('Connected to MongoDB');
+
+    // Clear existing doctors
+    console.log('Clearing existing doctors...');
+    await Doctor.deleteMany({});
+    console.log('Existing doctors cleared');
+
+    // Create new doctors
+    console.log('Creating new doctors...');
+    const doctors = [];
+    for (let i = 1; i <= 100; i++) {
+      const password = await bcrypt.hash('password123', 10);
+      doctors.push({
+        fullname: getRandomName(),
+        email: getRandomEmail(i),
+        password,
+        role: 'doctor',
+        specialty: getRandomSpecialty()
+      });
+    }
+
+    // Insert doctors
+    console.log('Inserting doctors into database...');
+    await Doctor.insertMany(doctors);
+    console.log('100 doctors seeded successfully!');
+
+    // Verify the seeding
+    const count = await Doctor.countDocuments();
+    console.log(`Total doctors in database: ${count}`);
+
+    // Sample of doctors
+    const sample = await Doctor.find().limit(3).select('-password');
+    console.log('Sample of seeded doctors:', sample.map(d => ({
+      fullname: d.fullname,
+      specialty: d.specialty,
+      experience: d.experience
+    })));
+
+  } catch (err) {
+    console.error('Error seeding doctors:', err);
+  } finally {
+    await mongoose.disconnect();
+    console.log('Disconnected from MongoDB');
+  }
+}
+
+// Run the seeding
+seedDoctors();

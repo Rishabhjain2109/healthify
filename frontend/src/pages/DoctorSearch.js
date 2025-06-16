@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import axios from '../utils/axios';
 
 function DoctorSearch() {
   const [query, setQuery] = useState('');
   const [doctors, setDoctors] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState({ total: 0, matched: 0 });
 
   const commonSymptoms = [
     { keyword: 'heart', label: 'Heart Problems' },
@@ -18,6 +19,20 @@ function DoctorSearch() {
     { keyword: 'ear', label: 'Ear/Nose/Throat' }
   ];
 
+  // Load all doctors on component mount
+  useEffect(() => {
+    const loadDoctors = async () => {
+      try {
+        const res = await axios.get('/api/doctors');
+        console.log('All doctors:', res.data);
+        setStats({ total: res.data.doctors.length, matched: 0 });
+      } catch (err) {
+        console.error('Error loading doctors:', err);
+      }
+    };
+    loadDoctors();
+  }, []);
+
   const handleSearch = async () => {
     if (!query.trim()) {
       setError('Please enter a symptom or disease');
@@ -27,12 +42,29 @@ function DoctorSearch() {
     setError('');
     setLoading(true);
     try {
-      const res = await axios.get(`http://localhost:5000/api/doctors/search?q=${query}`);
+      console.log('Making search request for query:', query);
+      const token = localStorage.getItem('token');
+      console.log('Token exists:', !!token);
+      
+      const res = await axios.get(`/api/doctors/search?q=${encodeURIComponent(query)}`);
+      console.log('Search response:', res.data);
+      
+      if (!res.data || !Array.isArray(res.data.doctors)) {
+        throw new Error('Invalid response format from server');
+      }
+      
       setDoctors(res.data.doctors);
+      setStats({ total: res.data.total, matched: res.data.matched });
+      
       if (res.data.doctors.length === 0) {
         setError('No doctors found for this condition. Please try a different search term.');
       }
     } catch (err) {
+      console.error('Search error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status
+      });
       setError(err.response?.data?.message || 'Search failed. Please try again.');
       setDoctors([]);
     } finally {
@@ -65,6 +97,11 @@ function DoctorSearch() {
         >
           {loading ? 'Searching...' : 'Search'}
         </button>
+      </div>
+
+      <div style={styles.stats}>
+        <p>Total doctors in system: {stats.total}</p>
+        {stats.matched > 0 && <p>Doctors found: {stats.matched}</p>}
       </div>
 
       <div style={styles.commonSymptoms}>
@@ -138,6 +175,11 @@ const styles = {
     borderRadius: '4px',
     cursor: 'pointer',
     fontSize: '16px',
+  },
+  stats: {
+    textAlign: 'center',
+    marginBottom: '20px',
+    color: '#7f8c8d',
   },
   commonSymptoms: {
     marginBottom: '30px',

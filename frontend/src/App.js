@@ -4,6 +4,7 @@ import Login from './components/Login'
 import Signup from './components/Signup'
 import Dashboard from './pages/Dashboard'
 import DoctorSearch from './pages/DoctorSearch';
+import UpdateProfile from './components/UpdateProfile';
 import { AuthContext } from './context/AuthContext'
 
 function App() {
@@ -27,6 +28,10 @@ function App() {
         <Route
           path="/search"
           element={user && user.role === 'patient' ? <DoctorSearch /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/profile"
+          element={user ? <UpdateProfile /> : <Navigate to="/login" />}
         />
         <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} />} />
       </Routes>

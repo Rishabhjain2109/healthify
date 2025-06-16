@@ -16,14 +16,28 @@ const keywordToSpecialty = {
   throat: 'ENT'
 };
 
+// Get all doctors (for testing)
+router.get('/', async (req, res) => {
+  try {
+    const doctors = await Doctor.find().select('-password');
+    console.log('Total doctors in database:', doctors.length);
+    res.json({ doctors });
+  } catch (err) {
+    console.error('Error fetching all doctors:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 router.get('/search', async (req, res) => {
   const query = req.query.q?.toLowerCase();
+  console.log('Search query:', query);
 
   if (!query) {
     return res.status(400).json({ message: 'Query is required' });
   }
 
   const matchedSpecialty = keywordToSpecialty[query];
+  console.log('Matched specialty:', matchedSpecialty);
 
   // Build search criteria
   const searchCriteria = {
@@ -34,14 +48,28 @@ router.get('/search', async (req, res) => {
     ].filter(Boolean)
   };
 
-  console.log('Doctor search criteria:', JSON.stringify(searchCriteria, null, 2));
+  console.log('Search criteria:', JSON.stringify(searchCriteria, null, 2));
 
   try {
+    // First, get total count of doctors
+    const totalDoctors = await Doctor.countDocuments();
+    console.log('Total doctors in database:', totalDoctors);
+
+    // Then perform the search
     const doctors = await Doctor.find(searchCriteria).select('-password');
     console.log('Doctors found:', doctors.length);
-    res.json({ doctors });
+    console.log('First doctor found:', doctors[0] ? {
+      fullname: doctors[0].fullname,
+      specialty: doctors[0].specialty
+    } : 'No doctors found');
+
+    res.json({ 
+      doctors,
+      total: totalDoctors,
+      matched: doctors.length
+    });
   } catch (err) {
-    console.error(err);
+    console.error('Error searching doctors:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
