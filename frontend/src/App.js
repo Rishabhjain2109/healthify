@@ -6,6 +6,8 @@ import Dashboard from './pages/Dashboard'
 import DoctorSearch from './pages/DoctorSearch';
 import UpdateProfile from './components/UpdateProfile';
 import { AuthContext } from './context/AuthContext'
+import Landing from './pages/Landing';
+import Footer from './components/Footer';
 
 function App() {
   const { user } = React.useContext(AuthContext)
@@ -34,7 +36,9 @@ function App() {
           element={user ? <UpdateProfile /> : <Navigate to="/login" />}
         />
         <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} />} />
+        <Route path="/" element={<Landing />} />
       </Routes>
+      <Footer />
     </BrowserRouter>
   )
 }
