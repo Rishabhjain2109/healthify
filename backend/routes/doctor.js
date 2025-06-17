@@ -74,4 +74,23 @@ router.get('/search', async (req, res) => {
   }
 });
 
+router.get('/:id',async (req,res)=>{
+  const {id} = req.params;
+  
+  try {
+    const doc = await Doctor.findById(id);
+    console.log("doc");
+    if(!doc){
+      return res.status(404).json({message:'Doctor not found'});
+    }
+
+    res.json(doc);
+
+  } catch (err) {
+    console.error('error fetching doctor',err);
+    res.status(500).json({message:'Server error'});
+  }
+});
+
+
 module.exports = router;

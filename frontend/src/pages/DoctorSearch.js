@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../utils/axios';
+import { Link } from 'react-router-dom';
 
 function DoctorSearch() {
   const [query, setQuery] = useState('');
@@ -126,11 +127,13 @@ function DoctorSearch() {
           <h3>Available Doctors:</h3>
           <div style={styles.doctorList}>
             {doctors.map((doc) => (
-              <div key={doc._id} style={styles.doctorCard}>
+              <Link to={`/doctors/${doc._id}`} key={doc._id} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div style={styles.doctorCard}>
                 <h4 style={styles.doctorName}>{doc.fullname}</h4>
                 <p style={styles.specialty}>Specialty: {doc.specialty}</p>
                 <button style={styles.bookButton}>Book Appointment</button>
               </div>
+              </Link>
             ))}
           </div>
         </div>
