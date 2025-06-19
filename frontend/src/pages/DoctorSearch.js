@@ -8,6 +8,11 @@ function DoctorSearch() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({ total: 0, matched: 0 });
+  const [userLocation, setUserLocation] = useState(null);
+  const [showDistanceFilter, setShowDistanceFilter] = useState(false);
+  const [maxDistance, setMaxDistance] = useState(50);
+  const [useRealTimeDistance, setUseRealTimeDistance] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const commonSymptoms = [
     { keyword: 'heart', label: 'Heart Problems' },
@@ -19,6 +24,32 @@ function DoctorSearch() {
     { keyword: 'cancer', label: 'Cancer' },
     { keyword: 'ear', label: 'Ear/Nose/Throat' }
   ];
+
+  // Get user location on component mount
+  useEffect(() => {
+    getCurrentLocation();
+  }, []);
+
+  const getCurrentLocation = () => {
+    setLocationLoading(true);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lon: position.coords.longitude
+          });
+          setLocationLoading(false);
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          setLocationLoading(false);
+        }
+      );
+    } else {
+      setLocationLoading(false);
+    }
+  };
 
   // Load all doctors on component mount
   useEffect(() => {
@@ -47,7 +78,16 @@ function DoctorSearch() {
       const token = localStorage.getItem('token');
       console.log('Token exists:', !!token);
       
-      const res = await axios.get(`/api/doctors/search?q=${encodeURIComponent(query)}`);
+      // Build search URL with location parameters
+      let searchUrl = `/api/doctors/search?q=${encodeURIComponent(query)}`;
+      if (userLocation && showDistanceFilter) {
+        searchUrl += `&lat=${userLocation.lat}&lon=${userLocation.lon}&distance=${maxDistance}`;
+        if (useRealTimeDistance) {
+          searchUrl += '&realTime=true';
+        }
+      }
+      
+      const res = await axios.get(searchUrl);//this line sends the get request to backend
       console.log('Search response:', res.data);
       
       if (!res.data || !Array.isArray(res.data.doctors)) {
@@ -78,6 +118,10 @@ function DoctorSearch() {
     handleSearch();
   };
 
+  const toggleDistanceFilter = () => {
+    setShowDistanceFilter(!showDistanceFilter);
+  };
+
   return (
     <div style={styles.container}>
       <h2 style={styles.title}>Find a Doctor</h2>
@@ -87,7 +131,7 @@ function DoctorSearch() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           placeholder="Enter your symptoms or condition (e.g., heart, skin, brain)"
           style={styles.input}
         />
@@ -100,9 +144,77 @@ function DoctorSearch() {
         </button>
       </div>
 
+      {/* Distance Filter Section */}
+      <div style={styles.filterSection}>
+        <button 
+          onClick={toggleDistanceFilter}
+          style={styles.filterToggleButton}
+        >
+          {showDistanceFilter ? 'Hide' : 'Show'} Distance Filter
+        </button>
+        
+        {showDistanceFilter && (
+          <div style={styles.filterOptions}>
+            <div style={styles.locationStatus}>
+              {locationLoading ? (
+                <p>Getting your location...</p>
+              ) : userLocation ? (
+                <p style={styles.locationText}>
+                  📍 Location detected: {userLocation.lat.toFixed(4)}, {userLocation.lon.toFixed(4)}
+                </p>
+              ) : (
+                <div>
+                  <p>Location not available</p>
+                  <button onClick={getCurrentLocation} style={styles.locationButton}>
+                    Enable Location
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {userLocation && (
+              <div style={styles.distanceControls}>
+                <label style={styles.label}>
+                  Maximum Distance: {maxDistance} km
+                  <input
+                    type="range"
+                    min="5"
+                    max="100"
+                    value={maxDistance}
+                    onChange={(e) => setMaxDistance(parseInt(e.target.value))}
+                    style={styles.rangeInput}
+                  />
+                </label>
+                
+                <div style={styles.checkboxGroup}>
+                  <label style={styles.checkboxLabel}>
+                    <input
+                      type="checkbox"
+                      checked={useRealTimeDistance}
+                      onChange={(e) => setUseRealTimeDistance(e.target.checked)}
+                      style={styles.checkbox}
+                    />
+                    Use real-time distance (Google Maps)
+                  </label>
+                </div>
+                
+                {useRealTimeDistance && (
+                  <p style={styles.infoText}>
+                    ℹ️ Real-time distance uses Google Maps API to calculate actual driving distance and time
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       <div style={styles.stats}>
         <p>Total doctors in system: {stats.total}</p>
         {stats.matched > 0 && <p>Doctors found: {stats.matched}</p>}
+        {showDistanceFilter && userLocation && (
+          <p>Searching within {maxDistance}km of your location</p>
+        )}
       </div>
 
       <div style={styles.commonSymptoms}>
@@ -131,7 +243,31 @@ function DoctorSearch() {
               <div style={styles.doctorCard}>
                 <h4 style={styles.doctorName}>{doc.fullname}</h4>
                 <p style={styles.specialty}>Specialty: {doc.specialty}</p>
+                {doc.distance && (
+                  <div style={styles.distanceInfo}>
+                    <p style={styles.distance}>📍 {doc.distance}</p>
+                    {doc.duration && doc.duration !== 'N/A' && (
+                      <p style={styles.duration}>⏱️ {doc.duration}</p>
+                    )}
+                  </div>
+                )}
+                {doc.address && (
+                  <p style={styles.address}>🏥 {doc.address}</p>
+                )}
                 <button style={styles.bookButton}>Book Appointment</button>
+                {/* Get Directions Button - now a real button */}
+                {userLocation && doc.latitude && doc.longitude && (
+                  <button
+                    style={styles.directionsButton}
+                    onClick={e => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      window.open(`https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lon}&destination=${doc.latitude},${doc.longitude}`, '_blank', 'noopener,noreferrer');
+                    }}
+                  >
+                    Get Directions
+                  </button>
+                )}
               </div>
               </Link>
             ))}
@@ -238,6 +374,88 @@ const styles = {
     border: 'none',
     borderRadius: '4px',
     cursor: 'pointer',
+  },
+  filterSection: {
+    marginBottom: '30px',
+  },
+  filterToggleButton: {
+    padding: '8px 16px',
+    backgroundColor: '#3498db',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+  filterOptions: {
+    marginTop: '10px',
+  },
+  locationStatus: {
+    marginBottom: '10px',
+  },
+  locationText: {
+    marginBottom: '10px',
+  },
+  locationButton: {
+    padding: '8px 16px',
+    backgroundColor: '#3498db',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+  distanceControls: {
+    marginTop: '10px',
+  },
+  label: {
+    display: 'block',
+    marginBottom: '10px',
+  },
+  rangeInput: {
+    width: '100%',
+  },
+  checkboxLabel: {
+    marginLeft: '10px',
+  },
+  checkbox: {
+    marginRight: '5px',
+  },
+  checkboxGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    marginTop: '10px',
+  },
+  distance: {
+    color: '#7f8c8d',
+    marginBottom: '15px',
+  },
+  address: {
+    color: '#7f8c8d',
+    marginBottom: '15px',
+  },
+  distanceInfo: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  duration: {
+    color: '#7f8c8d',
+    marginLeft: '10px',
+  },
+  infoText: {
+    color: '#7f8c8d',
+    marginTop: '10px',
+  },
+  directionsButton: {
+    display: 'inline-block',
+    marginTop: '10px',
+    padding: '8px 16px',
+    backgroundColor: '#f39c12',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    textDecoration: 'none',
+    cursor: 'pointer',
+    fontWeight: 'bold',
   },
 };
 

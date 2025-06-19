@@ -8,7 +8,14 @@ const DoctorSchema = new mongoose.Schema({
   specialty: { 
     type: String,
     required: true
-  }
+  },
+  // Location fields for distance filtering
+  latitude: { type: Number, default: null },
+  longitude: { type: Number, default: null },
+  address: { type: String, default: '' },
+  city: { type: String, default: '' },
+  state: { type: String, default: '' },
+  zipCode: { type: String, default: '' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Doctor', DoctorSchema);

@@ -47,6 +47,12 @@ router.post('/signup', async (req, res) => {
         email,
         password: hashed,
         specialty,
+        latitude: req.body.latitude || null,
+        longitude: req.body.longitude || null,
+        address: req.body.address || '',
+        city: req.body.city || '',
+        state: req.body.state || '',
+        zipCode: req.body.zipCode || ''
       })
       console.log(newDoctor);
 

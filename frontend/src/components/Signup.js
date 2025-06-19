@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { signup } from '../api/auth';
 import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 
 function Signup() {
   const [formData, setFormData] = useState({
@@ -12,6 +13,14 @@ function Signup() {
     specialty: ''
   });
   
+  // Location state for doctors
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
+  const [address, setAddress] = useState('');
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [zipCode, setZipCode] = useState('');
   
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -21,12 +30,59 @@ function Signup() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Detect location for doctors
+  const detectLocation = () => {
+    setLocationLoading(true);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          setLatitude(position.coords.latitude);
+          setLongitude(position.coords.longitude);
+          // Call backend to get address, city, state, zip
+          try {
+            const res = await axios.post('/api/utils/reverse-geocode', {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            },{timeout:5000});
+            setAddress(res.data.address);
+            setCity(res.data.city);
+            setState(res.data.state);
+            setZipCode(res.data.zipCode);
+          } catch (err) {
+            setAddress('');
+            setCity('');
+            setState('');
+            setZipCode('');
+          }
+          setLocationLoading(false);
+        },
+        (error) => {
+          alert('Location access denied or unavailable');
+          setLocationLoading(false);
+        }
+      );
+    } else {
+      alert('Geolocation is not supported by this browser.');
+      setLocationLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     try {
-      console.log('Submitting form data:', formData);
-      const data = await signup(formData);
+      // Add location fields for doctor
+      let submitData = { ...formData };
+      if (formData.role === 'doctor') {
+        submitData.latitude = latitude;
+        submitData.longitude = longitude;
+        submitData.address = address;
+        submitData.city = city;
+        submitData.state = state;
+        submitData.zipCode = zipCode;
+      }
+      //console.log('Submitting form data:', submitData);
+      const data = await signup(submitData);
       if (data.message) {
         setError(data.message);
       } else {
@@ -77,9 +133,19 @@ function Signup() {
       <option value="Oncologist">Oncologist</option>
       <option value="ENT">ENT</option>
     </select>
+    {/* Location detection for doctors */}
+    <button type="button" onClick={detectLocation} disabled={locationLoading}>
+      {locationLoading ? 'Detecting...' : 'Detect My Location'}
+    </button>
+    {latitude && longitude && (
+      <div>
+        <p>Latitude: {latitude}</p>
+        <p>Longitude: {longitude}</p>
+        {address && <p>Address: {address}</p>}
+      </div>
+    )}
   </>
 )}
-
 
   <button type="submit">Create Account</button>
   {error && <p style={styles.error}>{error}</p>}
