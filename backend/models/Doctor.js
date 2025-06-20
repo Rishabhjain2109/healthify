@@ -9,6 +9,13 @@ const DoctorSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  appointments: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Appointment'
+    }
+  ],
+  fees: {type: Number, default: 500},
   // Location fields for distance filtering
   latitude: { type: Number, default: null },
   longitude: { type: Number, default: null },

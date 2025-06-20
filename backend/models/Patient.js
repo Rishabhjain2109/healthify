@@ -12,7 +12,13 @@ const PatientSchema = new mongoose.Schema({
   address: {
     type: String,
     trim: true
-  }
+  },
+  appointments: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Appointment'
+    }
+  ],
 }, { timestamps: true });
 
 module.exports = mongoose.model('Patient', PatientSchema);

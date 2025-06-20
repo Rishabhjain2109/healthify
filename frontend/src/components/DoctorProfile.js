@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const DoctorProfile = () => {
   const { id } = useParams();
-  const [doc, setDoc] = useState(null);  // Start with null for loading state
+  const navigate = useNavigate();
+  const [doc, setDoc] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -32,42 +33,185 @@ const DoctorProfile = () => {
 
   return (
     <>
-      <style>
-        {`
-          .doctor-card {
-            max-width: 400px;
-            margin: 50px auto;
-            padding: 24px;
-            border: 1px solid #ddd;
-            border-radius: 16px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            background-color: #fff;
-            font-family: Arial, sans-serif;
+      <style>{`
+        .doctor-page {
+          display: flex;
+          flex-direction: column;
+          padding: 40px 60px;
+          font-family: 'Segoe UI', sans-serif;
+          background-color: #fafafa;
+          min-height: 100vh;
+        }
+
+        .header {
+          font-size: 32px;
+          font-weight: 700;
+          color: #222;
+          margin-bottom: 40px;
+        }
+
+        .doctor-info {
+          display: flex;
+          flex-direction: row;
+          gap: 40px;
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }
+
+        .left-panel {
+          flex: 1;
+          min-width: 280px;
+          text-align: center;
+        }
+
+        .left-panel img {
+          width: 160px;
+          height: 160px;
+          border-radius: 50%;
+          object-fit: cover;
+          background-color: #ccc;
+        }
+
+        .left-panel h2 {
+          margin-top: 20px;
+          font-size: 24px;
+          font-weight: 600;
+          color: #333;
+        }
+
+        .left-panel p {
+          color: #666;
+          font-size: 16px;
+        }
+
+        .right-panel {
+          flex: 2;
+          min-width: 300px;
+        }
+
+        .info-item {
+          margin-bottom: 18px;
+        }
+
+        .info-item span {
+          font-weight: 600;
+          color: #222;
+          display: inline-block;
+          min-width: 140px;
+        }
+
+        .fees-highlight {
+          color: #2e7d32;
+          font-size: 18px;
+          font-weight: 600;
+          margin-top: 20px;
+        }
+
+        .availability {
+          margin-top: 30px;
+        }
+
+        .availability h4 {
+          font-size: 18px;
+          margin-bottom: 10px;
+          color: #333;
+        }
+
+        .slots {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .slot {
+          background-color: #e0f2f1;
+          padding: 6px 12px;
+          border-radius: 8px;
+          font-size: 14px;
+          color: #00796b;
+        }
+
+        .book-btn {
+          margin-top: 40px;
+          padding: 12px 24px;
+          font-size: 16px;
+          background-color: #1976d2;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: background 0.3s;
+        }
+
+        .book-btn:hover {
+          background-color: #0d47a1;
+        }
+
+        @media (max-width: 768px) {
+          .doctor-info {
+            flex-direction: column;
+            align-items: center;
           }
 
-          .title {
-            font-size: 24px;
-            font-weight: bold;
+          .right-panel {
             text-align: center;
-            margin-bottom: 20px;
-            color: #333;
           }
 
-          .info p {
-            font-size: 16px;
-            margin: 8px 0;
-            color: #444;
+          .info-item span {
+            display: block;
+            margin-bottom: 5px;
           }
-        `}
-      </style>
 
-      <div className="doctor-card">
-        <h2 className="title">Doctor Profile</h2>
-        <div className="info">
-          <p><strong>Full Name:</strong> {doc.fullname}</p>
-          <p><strong>Email:</strong> {doc.email}</p>
-          <p><strong>Role:</strong> {doc.role}</p>
-          <p><strong>Specialty:</strong> {doc.specialty}</p>
+          .book-btn {
+            width: 100%;
+          }
+        }
+      `}</style>
+
+      <div className="doctor-page">
+        <div className="header">Doctor Profile</div>
+        <div className="doctor-info">
+          <div className="left-panel">
+            <img
+              src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+              alt="Doctor Avatar"
+            />
+            <h2>{doc.fullname}</h2>
+            <p>{doc.specialty || 'General Practitioner'}</p>
+          </div>
+
+          <div className="right-panel">
+            <div className="info-item">
+              <span>Email:</span> {doc.email}
+            </div>
+            <div className="info-item">
+              <span>Role:</span> {doc.role}
+            </div>
+            <div className="info-item">
+              <span>Specialty:</span> {doc.specialty}
+            </div>
+            <div className="info-item">
+              <span>Phone:</span> {doc.phone || 'N/A'}
+            </div>
+            <div className="fees-highlight">
+              Consultation Fee: ₹{doc.fees || 'Not Available'}
+            </div>
+
+            {doc.availability && doc.availability.length > 0 && (
+              <div className="availability">
+                <h4>Available Time Slots:</h4>
+                <div className="slots">
+                  {doc.availability.map((slot, index) => (
+                    <div key={index} className="slot">{slot}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button className="book-btn" onClick={() => navigate(`/book-appointment/${doc._id}`)}>
+              Book Appointment
+            </button>
+          </div>
         </div>
       </div>
     </>

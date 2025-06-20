@@ -9,6 +9,7 @@ import { AuthContext } from './context/AuthContext'
 import Landing from './pages/Landing';
 import Footer from './components/Footer';
 import DoctorProfile from './components/DoctorProfile'
+import BookAppointment from './pages/BookAppointment'
 
 function App() {
   const { user } = React.useContext(AuthContext)
@@ -39,6 +40,7 @@ function App() {
         <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} />} />
         <Route path="/" element={<Landing />} />
         <Route path="/doctors/:id" element={<DoctorProfile/>}/>
+        <Route path="/book-appointment/:docId" element={<BookAppointment/>}/>
       </Routes>
       <Footer />
     </BrowserRouter>

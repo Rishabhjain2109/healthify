@@ -19,6 +19,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/doctors', require('./routes/doctor'));
 app.use('/api/profile', profileRoutes);
 app.use('/api/utils', require('./routes/utils'));
+app.use('/api/appointments-req',require('./routes/appointments'));
 
 app.get('/', (req, res) => {
   res.send('Healthify Backend Running');
