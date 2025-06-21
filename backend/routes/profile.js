@@ -100,4 +100,36 @@ router.put('/update', authMiddleware, async (req, res) => {
   }
 });
 
+// Update doctor's fee
+router.put('/doctor/fee', authMiddleware, async (req, res) => {
+    if (req.user.role !== 'doctor') {
+        return res.status(403).json({ error: 'Access denied. Only doctors can update fees.' });
+    }
+
+    try {
+        const { fees } = req.body;
+        if (fees === undefined || fees === null) {
+            return res.status(400).json({ error: 'Fee amount is required.' });
+        }
+
+        const updatedDoctor = await Doctor.findByIdAndUpdate(
+            req.user.id,
+            { $set: { fees: Number(fees) } },
+            { new: true, runValidators: true }
+        ).select('-password');
+
+        if (!updatedDoctor) {
+            return res.status(404).json({ error: 'Doctor not found.' });
+        }
+
+        res.json({
+            message: 'Fee updated successfully',
+            user: updatedDoctor
+        });
+    } catch (err) {
+        console.error('Error updating fee:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;

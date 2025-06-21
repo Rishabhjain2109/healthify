@@ -10,6 +10,7 @@ import Landing from './pages/Landing';
 import Footer from './components/Footer';
 import DoctorProfile from './components/DoctorProfile'
 import BookAppointment from './pages/BookAppointment'
+import UpdateFee from './pages/UpdateFee';
 
 function App() {
   const { user } = React.useContext(AuthContext)
@@ -41,6 +42,10 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/doctors/:id" element={<DoctorProfile/>}/>
         <Route path="/book-appointment/:docId" element={<BookAppointment/>}/>
+        <Route
+          path="/update-fee"
+          element={user && user.role === 'doctor' ? <UpdateFee /> : <Navigate to="/login" />}
+        />
       </Routes>
       <Footer />
     </BrowserRouter>

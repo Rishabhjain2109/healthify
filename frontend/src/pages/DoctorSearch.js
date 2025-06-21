@@ -179,7 +179,7 @@ function DoctorSearch() {
                   <input
                     type="range"
                     min="5"
-                    max="100"
+                    max="500"
                     value={maxDistance}
                     onChange={(e) => setMaxDistance(parseInt(e.target.value))}
                     style={styles.rangeInput}

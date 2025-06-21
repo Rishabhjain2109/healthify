@@ -15,7 +15,7 @@ const DoctorSchema = new mongoose.Schema({
       ref: 'Appointment'
     }
   ],
-  fees: {type: Number, default: 500},
+  fees: {type: Number},
   // Location fields for distance filtering
   latitude: { type: Number, default: null },
   longitude: { type: Number, default: null },

@@ -4,27 +4,25 @@ import axios from 'axios';
 
 const BookAppointment = () => {
   const { docId } = useParams();
-  const [doctor, setDoc] = useState(null);
+  const [doctor, setDoctor] = useState(null);
   const storedUser = JSON.parse(localStorage.getItem('user'));
 
   const [form, setForm] = useState({
     name: storedUser?.fullname || '',
     email: storedUser?.email || '',
     phone: '',
-    message: '',
-    paymentMethod: ''
+    message: ''
   });
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [showPopup, setShowPopup] = useState(false); // popup state
+  const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
     const loadDetails = async () => {
       try {
         const res = await axios.get(`http://localhost:5000/api/doctors/${docId}`);
-        setDoc(res.data);
-        console.log("Doctor fetched:", res.data);
+        setDoctor(res.data);
       } catch (err) {
         console.error('Error fetching doctor:', err);
         setError('Unable to fetch doctor details.');
@@ -38,36 +36,44 @@ const BookAppointment = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async e => {
-    e.preventDefault();
-
-    if (!form.name || !form.email || !form.phone || !form.paymentMethod) {
-      setError('Please fill in all required fields.');
-      return;
-    }
-
+  const handlePayment = async () => {
     try {
-      await axios.post(`http://localhost:5000/api/appointments-req`, {
-        ...form,
-        doctorId: docId,
-        patientId: storedUser?.id
+      const { data: order } = await axios.post('http://localhost:5000/api/payment/create-order', {
+        doctorId: docId
       });
 
-      setSuccess('Appointment booked successfully!');
-      setShowPopup(true); // Show popup
+      const options = {
+        key: process.env.REACT_APP_RAZORPAY_KEY_ID,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'Healthify',
+        description: `Appointment with ${doctor.fullname}`,
+        order_id: order.id,
+        handler: async (response) => {
+          await axios.post('http://localhost:5000/api/payment/verify-payment', {
+            ...response,
+            doctorId: docId,
+            patientId: storedUser?.id,
+            ...form
+          });
+          setSuccess('Appointment booked successfully!');
+          setShowPopup(true);
+        },
+        prefill: {
+          name: form.name,
+          email: form.email,
+          contact: form.phone,
+        },
+        theme: {
+          color: '#1976d2',
+        },
+      };
 
-      setForm({
-        name: storedUser?.fullname || '',
-        email: storedUser?.email || '',
-        phone: '',
-        message: '',
-        paymentMethod: ''
-      });
-
-      setError('');
+      const rzp = new window.Razorpay(options);
+      rzp.open();
     } catch (err) {
       console.error(err);
-      setError('Failed to book appointment. Try again.');
+      setError('Payment failed. Please try again.');
     }
   };
 
@@ -106,7 +112,7 @@ const BookAppointment = () => {
           color: #444;
         }
 
-        input, select, textarea {
+        input, textarea {
           width: 100%;
           padding: 10px;
           font-size: 15px;
@@ -134,16 +140,17 @@ const BookAppointment = () => {
           background: #155fa0;
         }
 
-        .success {
-          color: green;
+        .success, .error {
           text-align: center;
           margin-bottom: 16px;
         }
 
+        .success {
+          color: green;
+        }
+
         .error {
           color: red;
-          text-align: center;
-          margin-bottom: 16px;
         }
 
         .popup-overlay {
@@ -171,15 +178,22 @@ const BookAppointment = () => {
         .popup-content h3 {
           margin-bottom: 16px;
         }
+
+        .fees-display {
+          text-align: center;
+          font-size: 18px;
+          font-weight: bold;
+          color: #333;
+          margin-bottom: 25px;
+        }
       `}</style>
 
       <div className="appointment-container">
         <h2>Book Appointment with {doctor.fullname}</h2>
-
+        <div className="fees-display">Appointment Fee: ₹{doctor.fees}</div>
         {error && <p className="error">{error}</p>}
         {success && <p className="success">{success}</p>}
-
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={(e) => { e.preventDefault(); handlePayment(); }}>
           <div className="form-group">
             <label>Your Name *</label>
             <input
@@ -214,16 +228,6 @@ const BookAppointment = () => {
           </div>
 
           <div className="form-group">
-            <label>Payment Method *</label>
-            <select name="paymentMethod" value={form.paymentMethod} onChange={handleChange} required>
-              <option value="">-- Select Payment Method --</option>
-              <option value="upi">UPI</option>
-              <option value="card">Credit/Debit Card</option>
-              <option value="cash">Cash (Pay at Clinic)</option>
-            </select>
-          </div>
-
-          <div className="form-group">
             <label>Message / Note</label>
             <textarea
               name="message"
@@ -233,7 +237,7 @@ const BookAppointment = () => {
             />
           </div>
 
-          <button type="submit" className="btn">Confirm Appointment</button>
+          <button type="submit" className="btn">Pay & Confirm Appointment</button>
         </form>
       </div>
 

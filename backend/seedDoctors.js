@@ -3,154 +3,52 @@ const bcrypt = require('bcryptjs');
 const Doctor = require('./models/Doctor');
 require('dotenv').config();
 
-// Sample location data for different cities
+// Sample Indian location data for different cities
 const sampleLocations = [
-  { lat: 40.7128, lon: -74.0060, city: 'New York', state: 'NY' }, // NYC
-  { lat: 34.0522, lon: -118.2437, city: 'Los Angeles', state: 'CA' }, // LA
-  { lat: 41.8781, lon: -87.6298, city: 'Chicago', state: 'IL' }, // Chicago
-  { lat: 29.7604, lon: -95.3698, city: 'Houston', state: 'TX' }, // Houston
-  { lat: 33.4484, lon: -112.0740, city: 'Phoenix', state: 'AZ' }, // Phoenix
-  { lat: 39.7392, lon: -104.9903, city: 'Denver', state: 'CO' }, // Denver
-  { lat: 25.7617, lon: -80.1918, city: 'Miami', state: 'FL' }, // Miami
-  { lat: 47.6062, lon: -122.3321, city: 'Seattle', state: 'WA' }, // Seattle
-  { lat: 37.7749, lon: -122.4194, city: 'San Francisco', state: 'CA' }, // SF
-  { lat: 32.7767, lon: -96.7970, city: 'Dallas', state: 'TX' }, // Dallas
+  { lat: 19.0760, lon: 72.8777, city: 'Mumbai', state: 'MH', zipCode: '400001' },
+  { lat: 28.7041, lon: 77.1025, city: 'Delhi', state: 'DL', zipCode: '110001' },
+  { lat: 12.9716, lon: 77.5946, city: 'Bengaluru', state: 'KA', zipCode: '560001' },
+  { lat: 17.3850, lon: 78.4867, city: 'Hyderabad', state: 'TG', zipCode: '500001' },
+  { lat: 23.0225, lon: 72.5714, city: 'Ahmedabad', state: 'GJ', zipCode: '380001' },
+  { lat: 13.0827, lon: 80.2707, city: 'Chennai', state: 'TN', zipCode: '600001' },
+  { lat: 22.5726, lon: 88.3639, city: 'Kolkata', state: 'WB', zipCode: '700001' },
+  { lat: 18.5204, lon: 73.8567, city: 'Pune', state: 'MH', zipCode: '411001' },
+  { lat: 26.9124, lon: 75.7873, city: 'Jaipur', state: 'RJ', zipCode: '302001' },
+  { lat: 26.8467, lon: 80.9462, city: 'Lucknow', state: 'UP', zipCode: '226001' },
+  { lat: 23.2599, lon: 77.4126, city: 'Bhopal', state: 'MP', zipCode: '462001' },
+  { lat: 30.7333, lon: 76.7794, city: 'Chandigarh', state: 'CH', zipCode: '160017' },
+  { lat: 9.9312, lon: 76.2673, city: 'Kochi', state: 'KL', zipCode: '682001' },
+  { lat: 25.5941, lon: 85.1376, city: 'Patna', state: 'BR', zipCode: '800001' },
+  { lat: 22.7196, lon: 75.8577, city: 'Indore', state: 'MP', zipCode: '452001' },
+  { lat: 21.1702, lon: 72.8311, city: 'Surat', state: 'GJ', zipCode: '395003' },
+  { lat: 26.4499, lon: 80.3319, city: 'Kanpur', state: 'UP', zipCode: '208001' },
+  { lat: 21.1458, lon: 79.0882, city: 'Nagpur', state: 'MH', zipCode: '440001' },
+  { lat: 17.6868, lon: 83.2185, city: 'Visakhapatnam', state: 'AP', zipCode: '530001' },
+  { lat: 22.3072, lon: 73.1812, city: 'Vadodara', state: 'GJ', zipCode: '390001' },
 ];
 
-const doctors = [
-  {
-    fullname: 'Dr. Sarah Johnson',
-    email: 'sarah.johnson@healthify.com',
-    password: 'password123',
-    specialty: 'Cardiologist',
-    address: '123 Heart Street, New York, NY 10001',
-    city: 'New York',
-    state: 'NY',
-    zipCode: '10001',
-    latitude: 40.7128,
-    longitude: -74.0060
-  },
-  {
-    fullname: 'Dr. Michael Chen',
-    email: 'michael.chen@healthify.com',
-    password: 'password123',
-    specialty: 'Neurologist',
-    address: '456 Brain Avenue, Los Angeles, CA 90210',
-    city: 'Los Angeles',
-    state: 'CA',
-    zipCode: '90210',
-    latitude: 34.0522,
-    longitude: -118.2437
-  },
-  {
-    fullname: 'Dr. Emily Rodriguez',
-    email: 'emily.rodriguez@healthify.com',
-    password: 'password123',
-    specialty: 'Dermatologist',
-    address: '789 Skin Road, Chicago, IL 60601',
-    city: 'Chicago',
-    state: 'IL',
-    zipCode: '60601',
-    latitude: 41.8781,
-    longitude: -87.6298
-  },
-  {
-    fullname: 'Dr. David Kim',
-    email: 'david.kim@healthify.com',
-    password: 'password123',
-    specialty: 'Orthopedic',
-    address: '321 Bone Boulevard, Houston, TX 77001',
-    city: 'Houston',
-    state: 'TX',
-    zipCode: '77001',
-    latitude: 29.7604,
-    longitude: -95.3698
-  },
-  {
-    fullname: 'Dr. Lisa Thompson',
-    email: 'lisa.thompson@healthify.com',
-    password: 'password123',
-    specialty: 'Pediatrician',
-    address: '654 Child Lane, Phoenix, AZ 85001',
-    city: 'Phoenix',
-    state: 'AZ',
-    zipCode: '85001',
-    latitude: 33.4484,
-    longitude: -112.0740
-  },
-  {
-    fullname: 'Dr. Robert Wilson',
-    email: 'robert.wilson@healthify.com',
-    password: 'password123',
-    specialty: 'Psychiatrist',
-    address: '987 Mind Street, Denver, CO 80201',
-    city: 'Denver',
-    state: 'CO',
-    zipCode: '80201',
-    latitude: 39.7392,
-    longitude: -104.9903
-  },
-  {
-    fullname: 'Dr. Maria Garcia',
-    email: 'maria.garcia@healthify.com',
-    password: 'password123',
-    specialty: 'Oncologist',
-    address: '147 Cancer Court, Miami, FL 33101',
-    city: 'Miami',
-    state: 'FL',
-    zipCode: '33101',
-    latitude: 25.7617,
-    longitude: -80.1918
-  },
-  {
-    fullname: 'Dr. James Brown',
-    email: 'james.brown@healthify.com',
-    password: 'password123',
-    specialty: 'ENT',
-    address: '258 Ear Avenue, Seattle, WA 98101',
-    city: 'Seattle',
-    state: 'WA',
-    zipCode: '98101',
-    latitude: 47.6062,
-    longitude: -122.3321
-  },
-  {
-    fullname: 'Dr. Jennifer Lee',
-    email: 'jennifer.lee@healthify.com',
-    password: 'password123',
-    specialty: 'Cardiologist',
-    address: '369 Heart Hill, San Francisco, CA 94101',
-    city: 'San Francisco',
-    state: 'CA',
-    zipCode: '94101',
-    latitude: 37.7749,
-    longitude: -122.4194
-  },
-  {
-    fullname: 'Dr. Thomas Anderson',
-    email: 'thomas.anderson@healthify.com',
-    password: 'password123',
-    specialty: 'Neurologist',
-    address: '741 Brain Bridge, Dallas, TX 75201',
-    city: 'Dallas',
-    state: 'TX',
-    zipCode: '75201',
-    latitude: 32.7767,
-    longitude: -96.7970
-  },
-  {
-    fullname: 'Dr. Asha Verma',
-    email: 'asha.verma@healthify.com',
-    password: 'password123',
-    specialty: 'Dermatologist',
-    address: 'MP Nagar, Bhopal, MP 462011',
-    city: 'Bhopal',
-    state: 'MP',
-    zipCode: '462011',
-    latitude: 23.2599,
-    longitude: 77.4126
-  }
+const specialties = [
+  'Cardiologist', 'Neurologist', 'Dermatologist', 'Orthopedic', 'Pediatrician',
+  'Psychiatrist', 'Oncologist', 'ENT'
 ];
+
+const getRandomFee = () => Math.floor(Math.random() * 801) + 200; // 200 to 1000
+const getRandomSpecialty = () => specialties[Math.floor(Math.random() * specialties.length)];
+
+// Generate doctors with Indian locations and random fees
+const doctors = sampleLocations.map((loc, idx) => ({
+  fullname: `Dr. ${['Amit', 'Priya', 'Rahul', 'Sneha', 'Vikram', 'Anjali', 'Rohit', 'Neha', 'Suresh', 'Pooja', 'Arjun', 'Meera', 'Karan', 'Divya', 'Manish'][idx % 15]} ${['Sharma', 'Verma', 'Patel', 'Singh', 'Gupta', 'Reddy', 'Nair', 'Das', 'Kumar', 'Jain', 'Joshi', 'Chopra', 'Kapoor', 'Bose', 'Mehta'][idx % 15]}`,
+  email: `doctor${idx + 1}@healthify.com`,
+  password: 'password123',
+  specialty: getRandomSpecialty(),
+  address: `${Math.floor(Math.random() * 1000) + 1} Clinic Road, ${loc.city}, ${loc.state} ${loc.zipCode}`,
+  city: loc.city,
+  state: loc.state,
+  zipCode: loc.zipCode,
+  latitude: loc.lat,
+  longitude: loc.lon,
+  fees: getRandomFee()
+}));
 
 async function seedDoctors() {
   try {
@@ -171,12 +69,12 @@ async function seedDoctors() {
 
     // Insert doctors
     const result = await Doctor.insertMany(hashedDoctors);
-    console.log(`Seeded ${result.length} doctors with location data`);
+    console.log(`Seeded ${result.length} doctors with Indian location data and random fees`);
 
-    // Display sample doctors with their locations
-    console.log('\nSample doctors with locations:');
+    // Display sample doctors with their locations and fees
+    console.log('\nSample doctors with locations and fees:');
     result.forEach(doctor => {
-      console.log(`${doctor.fullname} - ${doctor.specialty} - ${doctor.address} (${doctor.latitude}, ${doctor.longitude})`);
+      console.log(`${doctor.fullname} - ${doctor.specialty} - ${doctor.address} (${doctor.latitude}, ${doctor.longitude}) - Fee: ₹${doctor.fees}`);
     });
 
     mongoose.connection.close();

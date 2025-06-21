@@ -37,7 +37,7 @@ router.get('/search', async (req, res) => {
   const query = req.query.q?.toLowerCase();
   const userLat = parseFloat(req.query.lat);
   const userLon = parseFloat(req.query.lon);
-  const maxDistance = parseFloat(req.query.distance) || 50; // Default 50km
+  const maxDistance = parseFloat(req.query.distance) || 500; // Default 1000km
   const useRealTimeDistance = req.query.realTime === 'true'; // Only toggle
   
   console.log('Search query:', query);

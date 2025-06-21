@@ -11,43 +11,43 @@ const appointmentSchema = new mongoose.Schema({
   patient: {
     id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: 'Patient',
       required: true
     },
-    name: {
-      type: String,
-      required: true
-    },
-    email: {
-      type: String,
-      required: true
-    },
-    phone: {
-      type: String,
-      required: true
-    }
-  },
-  appointmentDate: {
-    type: Date,
+    name: { type: String, required: true },
+    email: { type: String, required: true },
+    phone: { type: String, required: true }
   },
   message: {
     type: String,
     default: ''
   },
-  paymentMethod: {
-    type: String,
-    enum: ['upi', 'card', 'cash'], // <-- Payment options
+  fees: {
+    type: Number,
     required: true
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['Pending', 'Paid', 'Failed'],
+    default: 'Pending'
+  },
+  razorpay: {
+    orderId: String,
+    paymentId: String,
+    signature: String
   },
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'cancelled', 'completed'],
-    default: 'pending'
+    enum: ['Pending', 'Confirmed', 'Cancelled'],
+    default: 'Pending'
+  },
+  time: {
+    type: String,
   },
   createdAt: {
     type: Date,
     default: Date.now
   }
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('Appointment', appointmentSchema);
