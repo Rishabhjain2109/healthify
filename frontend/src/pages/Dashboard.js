@@ -134,16 +134,28 @@ function Dashboard() {
       `}</style>
       <div className="dashboard-container">
         <div className="dashboard-header">
-          <h1>Welcome, {user?.fullname || 'User'}!</h1>
+          <h1>Welcome, {user?.fullname || user?.managerName || 'User'}!</h1>
         </div>
         <div className="dashboard-actions-row">
-          <button onClick={() => navigate('/profile')}>Update Profile</button>
-          {user?.role === 'doctor' && <button onClick={() => navigate('/update-fee')}>Set Fee</button>}
-          {user?.role === 'patient' && <button onClick={() => navigate('/search')}>Find a Doctor</button>}
-          <button onClick={fetchAppointments}>Your Appointments</button>
-          <button onClick={handleLogout}>Log Out</button>
+          {user?.role === 'lab' ? (
+            <>
+              <button onClick={() => navigate('/lab-dashboard')}>Lab Dashboard</button>
+              <button onClick={() => navigate('/lab-profile')}>Lab Profile</button>
+              <button onClick={handleLogout}>Log Out</button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => navigate('/profile')}>Update Profile</button>
+              {user?.role === 'doctor' && <button onClick={() => navigate('/update-fee')}>Set Fee</button>}
+              {user?.role === 'patient' && <button onClick={() => navigate('/search')}>Find a Doctor</button>}
+              {user?.role === 'patient' && <button onClick={() => navigate('/lab-tests')}>Lab Test</button>}
+              {user?.role === 'patient' && <button onClick={() => navigate('/lab-reports')}>Your Reports</button>}
+              <button onClick={fetchAppointments}>Your Appointments</button>
+              <button onClick={handleLogout}>Log Out</button>
+            </>
+          )}
         </div>
-        {showAppointments && (
+        {showAppointments && user?.role !== 'lab' && (
           <div>
             {loading && <p>Loading appointments...</p>}
             {error && <p style={{color: 'red'}}>{error}</p>}

@@ -10,7 +10,10 @@ function Signup() {
     password: '',
     confirmPassword: '',
     role: '',
-    specialty: ''
+    specialty: '',
+    managerName: '',
+    labName: '',
+    branchCode: ''
   });
   
   // Location state for doctors
@@ -71,15 +74,18 @@ function Signup() {
     e.preventDefault();
     setError('');
     try {
-      // Add location fields for doctor
+      // Add location fields for doctor or lab
       let submitData = { ...formData };
-      if (formData.role === 'doctor') {
+      if (formData.role === 'doctor' || formData.role === 'lab') {
         submitData.latitude = latitude;
         submitData.longitude = longitude;
         submitData.address = address;
         submitData.city = city;
         submitData.state = state;
         submitData.zipCode = zipCode;
+      }
+      if (formData.role === 'lab') {
+        submitData.managerName = formData.fullname;
       }
       //console.log('Submitting form data:', submitData);
       const data = await signup(submitData);
@@ -100,7 +106,7 @@ function Signup() {
     <div style={styles.container}>
       <h2>Sign Up</h2>
       <form onSubmit={handleSubmit} style={styles.form}>
-        <label>Full Name</label>
+        <label>{formData.role === 'lab' ? 'Manager Name' : 'Full Name'}</label>
         <input name="fullname" value={formData.fullname} onChange={handleChange} required />
 
         <label>Email</label>
@@ -117,6 +123,7 @@ function Signup() {
           <option value="" disabled>Select role</option>
           <option value="patient">Patient</option>
           <option value="doctor">Doctor</option>
+          <option value="lab">Lab</option>
         </select>
 
 {formData.role === 'doctor' && (
@@ -133,7 +140,26 @@ function Signup() {
       <option value="Oncologist">Oncologist</option>
       <option value="ENT">ENT</option>
     </select>
-    {/* Location detection for doctors */}
+      {/* location for doctors */}
+    <button type="button" onClick={detectLocation} disabled={locationLoading}>
+      {locationLoading ? 'Detecting...' : 'Detect My Location'}
+    </button>
+    {latitude && longitude && (
+      <div>
+        <p>Latitude: {latitude}</p>
+        <p>Longitude: {longitude}</p>
+        {address && <p>Address: {address}</p>}
+      </div>
+    )}
+  </>
+)}
+
+{formData.role === 'lab' && (
+  <>
+    <label>Lab Name</label>
+    <input name="labName" value={formData.labName || ''} onChange={handleChange} required />
+    <label>Branch Code</label>
+    <input name="branchCode" value={formData.branchCode || ''} onChange={handleChange} required />
     <button type="button" onClick={detectLocation} disabled={locationLoading}>
       {locationLoading ? 'Detecting...' : 'Detect My Location'}
     </button>

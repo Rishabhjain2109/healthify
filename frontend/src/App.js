@@ -11,6 +11,10 @@ import Footer from './components/Footer';
 import DoctorProfile from './components/DoctorProfile'
 import BookAppointment from './pages/BookAppointment'
 import UpdateFee from './pages/UpdateFee';
+import LabTestPage from './pages/LabTestPage';
+import LabReportsPage from './pages/LabReportsPage';
+import LabDashboard from './pages/LabDashboard';
+import LabProfile from './pages/LabProfile';
 
 function App() {
   const { user } = React.useContext(AuthContext)
@@ -45,6 +49,22 @@ function App() {
         <Route
           path="/update-fee"
           element={user && user.role === 'doctor' ? <UpdateFee /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/lab-tests"
+          element={user && user.role === 'patient' ? <LabTestPage /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/lab-reports"
+          element={user && user.role === 'patient' ? <LabReportsPage /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/lab-dashboard"
+          element={user && user.role === 'lab' ? <LabDashboard /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/lab-profile"
+          element={user && user.role === 'lab' ? <LabProfile /> : <Navigate to="/login" />}
         />
       </Routes>
       <Footer />

@@ -3,6 +3,9 @@ const cors = require('cors');
 const path = require('path');
 const connectDB = require('./config/db');
 const profileRoutes = require('./routes/profile');
+const labRoutes = require('./routes/labs');
+const labTestRoutes = require('./routes/labTests');
+const labBookingRoutes = require('./routes/labBookings');
 require('dotenv').config({ path: './.env' });
 
 connectDB();
@@ -19,6 +22,10 @@ app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/profile', profileRoutes);
 app.use('/api/utils', require('./routes/utils'));
 app.use('/api/payment', require('./routes/payment'));
+app.use('/api/labs', labRoutes);
+app.use('/api/lab-tests', labTestRoutes);
+app.use('/api/lab-bookings', labBookingRoutes);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/', (req, res) => {
   res.send('Healthify Backend Running');

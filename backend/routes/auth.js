@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Doctor = require('../models/Doctor');
 const Patient = require('../models/Patient');
+const Lab = require('../models/Lab');
 const dotenv = require('dotenv');
 
 dotenv.config();
@@ -31,7 +32,8 @@ router.post('/signup', async (req, res) => {
     // Check if user exists
     let existing1 = await Doctor.findOne({ email });
     let existing2 = await Patient.findOne({ email });
-    if (existing1 || existing2) {
+    let existing3 = await Lab.findOne({ email });
+    if (existing1 || existing2 || existing3) {
       return res.status(400).json({ message: 'Email already registered.' });
     }
 
@@ -61,7 +63,32 @@ router.post('/signup', async (req, res) => {
       const payload = { userId: newDoctor._id, role: newDoctor.role };
       const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
       res.status(201).json({ token, user: { id: newDoctor._id, fullname: newDoctor.fullname, email: newDoctor.email, role: newDoctor.role } });
-    }else{
+    } else if (role === 'lab') {
+      // Reverse geocode if coordinates provided
+      let addressData = {};
+      if (req.body.latitude && req.body.longitude) {
+        try {
+          addressData = await require('../utils/googleMaps').getAddressFromCoordinates(req.body.latitude, req.body.longitude);
+        } catch {}
+      }
+      const newLab = new Lab({
+        managerName: req.body.managerName,
+        labName: req.body.labName,
+        branchCode: req.body.branchCode,
+        email,
+        password: hashed,
+        latitude: req.body.latitude || null,
+        longitude: req.body.longitude || null,
+        address: req.body.address || addressData.formattedAddress || '',
+        city: req.body.city || addressData.city || '',
+        state: req.body.state || addressData.state || '',
+        zipCode: req.body.zipCode || addressData.zipCode || ''
+      });
+      await newLab.save();
+      const payload = { userId: newLab._id, role: newLab.role };
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
+      res.status(201).json({ token, user: { id: newLab._id, managerName: newLab.managerName, labName: newLab.labName, email: newLab.email, role: newLab.role } });
+    } else {
       const newPatient = new Patient({
         fullname,
         email,
@@ -95,6 +122,8 @@ router.post('/login', async (req, res) => {
       user = await Doctor.findOne({ email });
     } else if (role === 'patient') {
       user = await Patient.findOne({ email });
+    } else if (role === 'lab') {
+      user = await Lab.findOne({ email });
     } else {
       return res.status(400).json({ message: 'Invalid role provided.' });
     }
