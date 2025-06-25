@@ -93,4 +93,83 @@ router.post('/verify-payment', async (req, res) => {
     }
 });
 
+// Create Razorpay order for lab test
+router.post('/create-lab-order', async (req, res) => {
+    try {
+        const { labId, testName, price } = req.body;
+        if (!labId || !testName || !price) {
+            return res.status(400).json({ message: 'Missing labId, testName, or price' });
+        }
+        const options = {
+            amount: price * 100,
+            currency: 'INR',
+            receipt: `receipt_lab_order_${new Date().getTime()}`,
+        };
+        const order = await razorpay.orders.create(options);
+        res.json(order);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Server Error');
+    }
+});
+
+// Verify Razorpay payment for lab test and create booking
+router.post('/verify-lab-payment', async (req, res) => {
+    try {
+        const {
+            razorpay_order_id,
+            razorpay_payment_id,
+            razorpay_signature,
+            labId,
+            testName,
+            price,
+            patientId,
+            name,
+            email,
+            phone
+        } = req.body;
+
+        const generated_signature = crypto
+            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+            .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+            .digest('hex');
+
+        if (generated_signature !== razorpay_signature) {
+            return res.status(400).json({ message: 'Invalid signature' });
+        }
+
+        const LabBooking = require('../models/LabBooking');
+        const Lab = require('../models/Lab');
+        const Patient = require('../models/Patient');
+        const lab = await Lab.findById(labId);
+        if (!lab) {
+            return res.status(404).json({ message: 'Lab not found' });
+        }
+        const newBooking = new LabBooking({
+            patient: {
+                id: patientId,
+                name,
+                email,
+                phone
+            },
+            lab: labId,
+            testName,
+            price,
+            paymentStatus: 'Paid',
+            status: 'Pending',
+            razorpay: {
+                orderId: razorpay_order_id,
+                paymentId: razorpay_payment_id,
+                signature: razorpay_signature
+            }
+        });
+        await newBooking.save();
+        await Patient.findByIdAndUpdate(patientId, { $push: { appointments: newBooking._id } });
+        res.status(201).json(newBooking);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Lab payment verification failed' });
+    }
+});
+
 module.exports = router; 

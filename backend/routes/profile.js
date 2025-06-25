@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const Doctor = require('../models/Doctor');
 const Patient = require('../models/Patient');
 const authMiddleware = require('../middleware/auth'); // we'll create this
+const Lab = require('../models/Lab');
 const router = express.Router();
 
 // Get current user profile
@@ -130,6 +131,36 @@ router.put('/doctor/fee', authMiddleware, async (req, res) => {
         console.error('Error updating fee:', err);
         res.status(500).json({ error: err.message });
     }
+});
+
+// Get current lab profile
+router.get('/lab/me', authMiddleware, async (req, res) => {
+  if (req.user.role !== 'lab') return res.status(403).json({ error: 'Forbidden' });
+  try {
+    const lab = await Lab.findById(req.user.id).select('-password');
+    if (!lab) return res.status(404).json({ error: 'Lab not found' });
+    res.json(lab);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update lab profile
+router.put('/lab/update', authMiddleware, async (req, res) => {
+  if (req.user.role !== 'lab') return res.status(403).json({ error: 'Forbidden' });
+  try {
+    const updateData = { ...req.body };
+    delete updateData.password;
+    const updatedLab = await Lab.findByIdAndUpdate(
+      req.user.id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).select('-password');
+    if (!updatedLab) return res.status(404).json({ error: 'Lab not found' });
+    res.json({ message: 'Lab profile updated successfully', lab: updatedLab });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

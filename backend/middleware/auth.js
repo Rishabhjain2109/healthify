@@ -1,6 +1,9 @@
 const jwt = require('jsonwebtoken');
+const Doctor = require('../models/Doctor');
+const Patient = require('../models/Patient');
+const Lab = require('../models/Lab');
 
-module.exports = (req, res, next) => {
+module.exports = async (req, res, next) => {
   try {
     // Get token from header
     const authHeader = req.header('Authorization');
@@ -22,11 +25,30 @@ module.exports = (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log('Decoded token:', decoded);
     
-    // Add user info to request
+    // Fetch user from DB
+    let user;
+    if (decoded.role === 'doctor') {
+      user = await Doctor.findById(decoded.userId);
+    } else if (decoded.role === 'patient') {
+      user = await Patient.findById(decoded.userId);
+    } else if (decoded.role === 'lab') {
+      user = await Lab.findById(decoded.userId);
+    }
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+    
+    // Attach all relevant fields to req.user
     req.user = {
-      id: decoded.userId, // Make sure we're using userId from the token
-      role: decoded.role
+      id: user._id,
+      role: user.role,
+      fullname: user.fullname || user.managerName || '',
+      email: user.email
     };
+    if (user.role === 'lab') {
+      req.user.labName = user.labName;
+      req.user.managerName = user.managerName;
+    }
     console.log('User info added to request:', req.user);
     
     next();

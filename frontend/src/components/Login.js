@@ -43,7 +43,7 @@ export default function Login() {
         <select name="role" value={formData.role} onChange={handleChange} required>
           <option value="patient">Patient</option>
           <option value="doctor">Doctor</option>
-          {/* You can add more roles here if needed */}
+          <option value="lab">Lab</option>
         </select>
 
         <button type="submit">Log In</button>
