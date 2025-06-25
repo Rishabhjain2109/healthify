@@ -19,6 +19,29 @@ const PatientSchema = new mongoose.Schema({
       ref: 'Appointment'
     }
   ],
+  onlineAppointment: [
+    {
+      doctor: {
+        type: String,
+        ref: 'Doctor',
+        required: true,
+      },
+      patient: {
+        type: String,
+        ref: 'Patient',
+      },
+      roomId: {
+        type: String,
+        required: true,
+      },
+      status: {
+        type: String,
+        enum: ['Pending', 'Confirmed', 'Cancelled'],
+        default: 'Pending'
+      },
+      
+    }
+  ],
 }, { timestamps: true });
 
 module.exports = mongoose.model('Patient', PatientSchema);

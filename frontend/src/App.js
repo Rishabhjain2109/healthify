@@ -11,6 +11,7 @@ import Footer from './components/Footer';
 import DoctorProfile from './components/DoctorProfile'
 import BookAppointment from './pages/BookAppointment'
 import UpdateFee from './pages/UpdateFee';
+import VideoCallPage from './pages/VideocallPage'
 
 function App() {
   const { user } = React.useContext(AuthContext)
@@ -46,6 +47,8 @@ function App() {
           path="/update-fee"
           element={user && user.role === 'doctor' ? <UpdateFee /> : <Navigate to="/login" />}
         />
+
+        <Route path="/video-call/:roomId" element={<VideoCallPage/>}/>
       </Routes>
       <Footer />
     </BrowserRouter>

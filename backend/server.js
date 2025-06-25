@@ -19,6 +19,8 @@ app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/profile', profileRoutes);
 app.use('/api/utils', require('./routes/utils'));
 app.use('/api/payment', require('./routes/payment'));
+app.use('/api/consult-request',require('./routes/consultrequest'));
+app.use('/api/getonlinemeetings',require('./routes/onlineMeetings'));
 
 app.get('/', (req, res) => {
   res.send('Healthify Backend Running');
