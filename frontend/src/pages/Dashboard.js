@@ -275,6 +275,8 @@ function Dashboard() {
               {user?.role === 'patient' && <button onClick={() => navigate('/lab-tests')}>Lab Test</button>}
               {user?.role === 'patient' && <button onClick={() => navigate('/lab-reports')}>Your Reports</button>}
               {user?.role === 'patient' && <button onClick={() => navigate('/medicines')}>My Medicines</button>}
+              {user?.role === 'patient' && <button onClick={() => navigate('/my-orders')}>My Orders</button>}
+
               <button onClick={fetchAppointments}>Your Appointments</button>
               <button onClick={fetchOnlineAppointments}>Your Online Appointments</button>
           <button onClick={handleLogout}>Log Out</button>

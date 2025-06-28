@@ -17,6 +17,7 @@ import LabDashboard from './pages/LabDashboard';
 import LabProfile from './pages/LabProfile';
 import VideoCallPage from './pages/VideocallPage'
 import Medicine from './pages/Medicine';
+import MyOrders from './pages/MyOrders'
 
 
 
@@ -78,6 +79,12 @@ function App() {
           path="/medicines"
           element={user && user.role === 'patient' ? <Medicine /> : <Navigate to="/login" />}
         />
+
+        <Route
+          path="/my-orders"
+          element={user && user.role === 'patient' ? <MyOrders /> : <Navigate to="/login" />}
+        />
+
       </Routes>
       <Footer />
     </BrowserRouter>

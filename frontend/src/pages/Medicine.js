@@ -132,7 +132,7 @@ export default function Medicine() {
           <ul style={styles.list}>
             {inventory.map(item => (
               <li key={item._id} style={styles.item}>
-                {item.name} x {item.quantity} — ₹{item.price * (quantities[item.name] || 1)}
+                {item.name} x {item.quantity} — ₹{item.price * item.quantity}
                 <button
                   style={styles.removeButton}
                   onClick={() => removeFromInventory(item._id)}

@@ -58,6 +58,7 @@
 
 const MedicineInventory = require('../models/Medicine.cjs');
 const MedicineList = require('../models/MedicineList.cjs');
+const Order = require('../models/Order.cjs');
 
 const searchMedicines = async (req, res) => {
   const { name } = req.query;
@@ -93,32 +94,55 @@ const getInventory = async (req, res) => {
   }
 };
 
+
+
 const placeOrder = async (req, res) => {
   try {
+    
+    const items = await MedicineInventory.find({ user: req.userId }).lean();
+
+    if (!items.length) {
+       return res.status(400).json({ error: 'No items to order' });
+     }
+
+   
+    const totalCost = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+    
+    const newOrder = new Order({
+      user: req.userId,
+      items,
+      totalCost
+    });
+    console.log('Saving order:', newOrder);
+    //await newOrder.save();
+
+    // Reduce stock in MedicineList
+  for (const item of items) {
+    const med = await MedicineList.findOne({ name: item.name });
+    if (med) {
+      med.stock -= item.quantity;
+      if (med.stock <= 0) {
+        await MedicineList.deleteOne({ _id: med._id }); // auto delete if out of stock
+      } else {
+        await med.save();
+      }
+    }
+  }
+
+
+    
     await MedicineInventory.deleteMany({ user: req.userId });
-    res.json({ message: 'Order placed successfully' });
-  } catch {
+
+    res.json({ message: 'Order placed successfully'});
+
+  } catch (err) {
+    console.error('Place order error:', err);
     res.status(500).json({ error: 'Failed to place order' });
   }
 };
 
-// const removeFromInventory = async (req, res) => {
-//   try {
-//     const item = await MedicineInventory.findOneAndDelete({
-//       _id: req.params.id,
-//       user: req.userId // Ensure this matches the logged-in user
-//     });
 
-//     if (!item) {
-//       return res.status(404).json({ error: 'Item not found or unauthorized' });
-//     }
-
-//     res.json({ message: 'Item removed' });
-//   } catch (error) {
-//     console.error('Delete error:', error);
-//     res.status(500).json({ error: 'Failed to remove item' });
-//   }
-// };
 
 const removeFromInventory = async (req, res) => {
   try {
@@ -141,6 +165,59 @@ const removeFromInventory = async (req, res) => {
   }
 };
 
+const getOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({ user: req.userId }).sort({ createdAt: -1 });
+    res.json(orders);
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch orders' });
+  }
+};
+
+
+//For adding medicines from Admin
+const addMedicineToList = async (req, res) => {
+  try {
+    const { name, description, price, stock } = req.body;
+
+    if (!name || !description || !price || !stock) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    const newMed = new MedicineList({ name, description, price, stock });
+    await newMed.save();
+
+    res.json({ message: 'Medicine added to list', medicine: newMed });
+  } catch (err) {
+    console.error('Add medicine error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+const getAllMedicines = async (req, res) => {
+  try {
+    const medicines = await MedicineList.find();
+    res.json(medicines);
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch medicine list' });
+  }
+};
+
+
+const deleteMedicineFromList = async (req, res) => {
+  try {
+    await MedicineList.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Medicine removed from list' });
+  } catch {
+    res.status(500).json({ error: 'Failed to delete medicine' });
+  }
+};
+
+
+
+
+
+
 
 
 
@@ -149,6 +226,10 @@ module.exports = {
   addToInventory,
   getInventory,
   placeOrder,
-  removeFromInventory 
+  removeFromInventory,
+  getOrders,
+  addMedicineToList,
+  getAllMedicines,
+  deleteMedicineFromList
 };
 
