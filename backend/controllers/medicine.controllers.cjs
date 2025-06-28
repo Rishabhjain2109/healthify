@@ -99,23 +99,27 @@ const getInventory = async (req, res) => {
 const placeOrder = async (req, res) => {
   try {
     
-    const items = await MedicineInventory.find({ user: req.userId }).lean();
+    const items = await MedicineInventory.find({ user: req.body.userId }).lean();
+    console.log("user id",items);
+    
 
     if (!items.length) {
        return res.status(400).json({ error: 'No items to order' });
-     }
+    }
 
    
     const totalCost = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
     
     const newOrder = new Order({
-      user: req.userId,
+      user: req.body.userId,
       items,
       totalCost
     });
-    console.log('Saving order:', newOrder);
-    //await newOrder.save();
+
+    ;
+    // console.log('Saving order:', newOrder);
+    await newOrder.save();
 
     // Reduce stock in MedicineList
   for (const item of items) {
@@ -132,7 +136,7 @@ const placeOrder = async (req, res) => {
 
 
     
-    await MedicineInventory.deleteMany({ user: req.userId });
+    await MedicineInventory.deleteMany({ user: req.body.userId });
 
     res.json({ message: 'Order placed successfully'});
 

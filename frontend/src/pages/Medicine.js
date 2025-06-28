@@ -1,8 +1,9 @@
 
 
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import axios from '../utils/axios';
+import { AuthContext } from '../context/AuthContext';
 
 export default function Medicine() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -10,6 +11,7 @@ export default function Medicine() {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [quantities, setQuantities] = useState({});
+  const {user} = useContext(AuthContext);
 
   const searchMedicine = async () => {
     if (!searchTerm.trim()) return;
@@ -63,7 +65,11 @@ export default function Medicine() {
 
   const placeOrder = async () => {
     try {
-      await axios.post('/api/medicines/order');
+      console.log(user.id);
+      
+      await axios.post('/api/medicines/order',{
+        userId:user.id,
+      });
       fetchInventory();
       alert('Order placed successfully!');
     } catch (err) {
