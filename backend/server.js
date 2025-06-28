@@ -7,6 +7,9 @@ const labRoutes = require('./routes/labs');
 const labTestRoutes = require('./routes/labTests');
 const labBookingRoutes = require('./routes/labBookings');
 require('dotenv').config({ path: './.env' });
+const medicineRoutes = require('./routes/medicine.cjs');
+
+
 
 connectDB();
 
@@ -28,7 +31,7 @@ app.use('/api/lab-bookings', labBookingRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/consult-request',require('./routes/consultrequest'));
 app.use('/api/getonlinemeetings',require('./routes/onlineMeetings'));
-
+app.use('/api/medicines', medicineRoutes);
 app.get('/', (req, res) => {
   res.send('Healthify Backend Running');
 });

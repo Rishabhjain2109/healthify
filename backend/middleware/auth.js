@@ -3,6 +3,7 @@ const Doctor = require('../models/Doctor');
 const Patient = require('../models/Patient');
 const Lab = require('../models/Lab');
 
+
 module.exports = async (req, res, next) => {
   try {
     // Get token from header

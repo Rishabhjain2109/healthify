@@ -274,6 +274,7 @@ function Dashboard() {
               {user?.role === 'patient' && <button onClick={() => navigate('/search')}>Find a Doctor</button>}
               {user?.role === 'patient' && <button onClick={() => navigate('/lab-tests')}>Lab Test</button>}
               {user?.role === 'patient' && <button onClick={() => navigate('/lab-reports')}>Your Reports</button>}
+              {user?.role === 'patient' && <button onClick={() => navigate('/medicines')}>My Medicines</button>}
               <button onClick={fetchAppointments}>Your Appointments</button>
               <button onClick={fetchOnlineAppointments}>Your Online Appointments</button>
           <button onClick={handleLogout}>Log Out</button>
@@ -299,3 +300,10 @@ function Dashboard() {
 }
 
 export default Dashboard;
+
+
+
+
+
+
+

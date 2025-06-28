@@ -16,6 +16,10 @@ import LabReportsPage from './pages/LabReportsPage';
 import LabDashboard from './pages/LabDashboard';
 import LabProfile from './pages/LabProfile';
 import VideoCallPage from './pages/VideocallPage'
+import Medicine from './pages/Medicine';
+
+
+
 
 function App() {
   const { user } = React.useContext(AuthContext)
@@ -69,6 +73,11 @@ function App() {
         />
 
         <Route path="/video-call/:roomId" element={<VideoCallPage/>}/>
+
+        <Route
+          path="/medicines"
+          element={user && user.role === 'patient' ? <Medicine /> : <Navigate to="/login" />}
+        />
       </Routes>
       <Footer />
     </BrowserRouter>
