@@ -18,6 +18,7 @@ import LabProfile from './pages/LabProfile';
 import VideoCallPage from './pages/VideocallPage'
 import Medicine from './pages/Medicine';
 import MyOrders from './pages/MyOrders'
+import Navbar from './components/Navbar'
 
 
 
@@ -27,6 +28,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <Navbar/>
       <Routes>
         <Route
           path="/login"
