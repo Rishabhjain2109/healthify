@@ -2,6 +2,8 @@ import React, { useState, useContext } from 'react'
 import { login as apiLogin } from '../api/auth'
 import { useNavigate, Link } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
+import './Auth.css';
+
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: '', password: '', role: 'patient' }) // ← default role
@@ -30,15 +32,15 @@ export default function Login() {
   }
 
   return (
-    <div style={{ maxWidth: '350px', margin: '40px auto', padding: '20px', border: '1px solid #ddd', borderRadius: '6px' }}>
+    <div className="auth-container">
       <h2>Log In</h2>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
+      <form onSubmit={handleSubmit} className="auth-form">
         <label>Email</label>
         <input type="email" name="email" value={formData.email} onChange={handleChange} required />
-        
+
         <label>Password</label>
         <input type="password" name="password" value={formData.password} onChange={handleChange} required />
-        
+
         <label>Role</label>
         <select name="role" value={formData.role} onChange={handleChange} required>
           <option value="patient">Patient</option>
@@ -47,9 +49,11 @@ export default function Login() {
         </select>
 
         <button type="submit">Log In</button>
-        {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
+        {error && <p className="auth-error">{error}</p>}
       </form>
+
       <p>Don't have an account? <Link to="/signup">Sign Up</Link></p>
     </div>
+
   )
 }

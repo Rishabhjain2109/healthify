@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { signup } from '../api/auth';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import './Auth.css';
+
 
 function Signup() {
   const [formData, setFormData] = useState({
@@ -103,9 +105,9 @@ function Signup() {
   };
 
   return (
-    <div style={styles.container}>
+    <div className="auth-container">
       <h2>Sign Up</h2>
-      <form onSubmit={handleSubmit} style={styles.form}>
+      <form onSubmit={handleSubmit} className="auth-form">
         <label>{formData.role === 'lab' ? 'Manager Name' : 'Full Name'}</label>
         <input name="fullname" value={formData.fullname} onChange={handleChange} required />
 
@@ -126,61 +128,61 @@ function Signup() {
           <option value="lab">Lab</option>
         </select>
 
-{formData.role === 'doctor' && (
-  <>
-    <label>Specialty</label>
-    <select name="specialty" value={formData.specialty} onChange={handleChange} required>
-      <option value="" disabled>Select specialty</option>
-      <option value="Cardiologist">Cardiologist</option>
-      <option value="Neurologist">Neurologist</option>
-      <option value="Dermatologist">Dermatologist</option>
-      <option value="Orthopedic">Orthopedic</option>
-      <option value="Pediatrician">Pediatrician</option>
-      <option value="Psychiatrist">Psychiatrist</option>
-      <option value="Oncologist">Oncologist</option>
-      <option value="ENT">ENT</option>
-    </select>
-      {/* location for doctors */}
-    <button type="button" onClick={detectLocation} disabled={locationLoading}>
-      {locationLoading ? 'Detecting...' : 'Detect My Location'}
-    </button>
-    {latitude && longitude && (
-      <div>
-        <p>Latitude: {latitude}</p>
-        <p>Longitude: {longitude}</p>
-        {address && <p>Address: {address}</p>}
-      </div>
-    )}
-  </>
-)}
+        {formData.role === 'doctor' && (
+          <>
+            <label>Specialty</label>
+            <select name="specialty" value={formData.specialty} onChange={handleChange} required>
+              <option value="" disabled>Select specialty</option>
+              <option value="Cardiologist">Cardiologist</option>
+              <option value="Neurologist">Neurologist</option>
+              <option value="Dermatologist">Dermatologist</option>
+              <option value="Orthopedic">Orthopedic</option>
+              <option value="Pediatrician">Pediatrician</option>
+              <option value="Psychiatrist">Psychiatrist</option>
+              <option value="Oncologist">Oncologist</option>
+              <option value="ENT">ENT</option>
+            </select>
+            <button type="button" onClick={detectLocation} disabled={locationLoading}>
+              {locationLoading ? 'Detecting...' : 'Detect My Location'}
+            </button>
+            {latitude && longitude && (
+              <div>
+                <p>Latitude: {latitude}</p>
+                <p>Longitude: {longitude}</p>
+                {address && <p>Address: {address}</p>}
+              </div>
+            )}
+          </>
+        )}
 
-{formData.role === 'lab' && (
-  <>
-    <label>Lab Name</label>
-    <input name="labName" value={formData.labName || ''} onChange={handleChange} required />
-    <label>Branch Code</label>
-    <input name="branchCode" value={formData.branchCode || ''} onChange={handleChange} required />
-    <button type="button" onClick={detectLocation} disabled={locationLoading}>
-      {locationLoading ? 'Detecting...' : 'Detect My Location'}
-    </button>
-    {latitude && longitude && (
-      <div>
-        <p>Latitude: {latitude}</p>
-        <p>Longitude: {longitude}</p>
-        {address && <p>Address: {address}</p>}
-      </div>
-    )}
-  </>
-)}
+        {formData.role === 'lab' && (
+          <>
+            <label>Lab Name</label>
+            <input name="labName" value={formData.labName || ''} onChange={handleChange} required />
+            <label>Branch Code</label>
+            <input name="branchCode" value={formData.branchCode || ''} onChange={handleChange} required />
+            <button type="button" onClick={detectLocation} disabled={locationLoading}>
+              {locationLoading ? 'Detecting...' : 'Detect My Location'}
+            </button>
+            {latitude && longitude && (
+              <div>
+                <p>Latitude: {latitude}</p>
+                <p>Longitude: {longitude}</p>
+                {address && <p>Address: {address}</p>}
+              </div>
+            )}
+          </>
+        )}
 
-  <button type="submit">Create Account</button>
-  {error && <p style={styles.error}>{error}</p>}
-</form>
+        <button type="submit">Create Account</button>
+        {error && <p className="auth-error">{error}</p>}
+      </form>
 
       <p>
         Already have an account? <Link to="/login">Log In</Link>
       </p>
     </div>
+
   );
 }
 
