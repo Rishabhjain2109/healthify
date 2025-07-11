@@ -27,6 +27,9 @@ function LabReportsPage() {
       {bookings.length === 0 && !loading ? <p>No lab bookings found.</p> : (
         <ul>
           {bookings.map(booking => (
+            // <div>
+            //   1
+            // </div>
             <li key={booking._id} style={{ marginBottom: 10 }}>
               <b>{booking.testName}</b> at <b>{booking.lab?.labName}</b> <br />
               <span>Status: {booking.status}</span><br />
