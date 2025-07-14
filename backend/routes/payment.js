@@ -62,8 +62,9 @@ router.post('/verify-payment', async (req, res) => {
             return res.status(404).json({ message: "Doctor not found" });
         }
 
+        // Ensure doctor field is set to the doctor's _id
         const newAppointment = new Appointment({
-            doctor: doctorId,
+            doctor: doctor._id, // <-- always use the doctor's _id
             patient: {
                 id: patientId,
                 name,

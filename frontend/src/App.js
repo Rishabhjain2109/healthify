@@ -19,9 +19,8 @@ import VideoCallPage from './pages/VideocallPage'
 import Medicine from './pages/Medicine';
 import MyOrders from './pages/MyOrders'
 import Navbar from './components/Navbar'
-
-
-
+import DoctorAppointments from './pages/DoctorAppointments';
+import DoctorOnlineAppointments from './pages/DoctorOnlineAppointments';
 
 
 function App() {
@@ -29,7 +28,7 @@ function App() {
 
   return (
     <BrowserRouter>
-      <Navbar/>
+      {user?.role === 'patient' && <Navbar/>}
       <Routes>
         <Route
           path="/login"
@@ -86,6 +85,15 @@ function App() {
         <Route
           path="/my-orders"
           element={user && user.role === 'patient' ? <MyOrders /> : <Navigate to="/login" />}
+        />
+
+        <Route
+          path="/doctor/appointments"
+          element={user && user.role === 'doctor' ? <DoctorAppointments /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/doctor/online-appointments"
+          element={user && user.role === 'doctor' ? <DoctorOnlineAppointments /> : <Navigate to="/login" />}
         />
 
       </Routes>

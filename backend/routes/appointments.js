@@ -51,7 +51,7 @@ router.put('/:id/time', auth, async (req, res) => {
         }
 
         // Verify that the doctor updating the appointment is the one assigned to it
-        if (appointment.doctor.toString() !== req.user.id) {
+        if (appointment.doctor.toString() !== req.user.id.toString()) {
             return res.status(403).json({ message: 'You are not authorized to update this appointment.' });
         }
 

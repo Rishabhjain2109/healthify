@@ -201,26 +201,24 @@ function Dashboard() {
   );
 
   useEffect(() => {
-    
-    const fetchData = async ()=>{
-      try {
-        const { data } = await API.get('/api/appointments');
-        
-        const sortedData = [...data].sort((a, b) => {
-          return new Date(a.time).getTime() - new Date(b.time).getTime();
-        });
-
-        setAppointments(sortedData);
-        console.log(sortedData[0],"Here");
-      } catch (err) {
-        console.error('Error fetching appointments:', err);
-        setError('Unable to fetch appointments details.');
+    // Only fetch appointments for patient or doctor
+    if (user?.role === 'patient' || user?.role === 'doctor') {
+      const fetchData = async ()=>{
+        try {
+          const { data } = await API.get('/api/appointments');
+          const sortedData = [...data].sort((a, b) => {
+            return new Date(a.time).getTime() - new Date(b.time).getTime();
+          });
+          setAppointments(sortedData);
+          console.log(sortedData[0],"Here");
+        } catch (err) {
+          console.error('Error fetching appointments:', err);
+          setError('Unable to fetch appointments details.');
+        }
       }
+      fetchData();
     }
-  
-    fetchData();
-
-  }, []);
+  }, [user]);
   
 
 
@@ -412,107 +410,285 @@ function Dashboard() {
         }
       `}</style>
 
-      <div className='main-page'>
-        <div className='sidebar'>
-            SideBar
+      {user?.role === 'patient' && (
+        <div className='main-page'>
+          <div className='sidebar'>
+              SideBar
 
-            {user?.role === 'doctor' && <button onClick={() => navigate('/update-fee')}>Set Fee</button>}
-              {user?.role === 'patient' && <button onClick={() => navigate('/search')}>Find a Doctor &nbsp;&nbsp;🔎︎</button>}
-              {user?.role === 'patient' && <button onClick={() => navigate('/lab-tests')}>Lab Test &nbsp;&nbsp;☤</button>}
-              {user?.role === 'patient' && <button onClick={() => navigate('/lab-reports')}>Your Reports &nbsp;&nbsp;📄</button>}
-              {user?.role === 'patient' && <button onClick={() => navigate('/medicines')}>My Medicines &nbsp;&nbsp;⚗</button>}
-              {user?.role === 'patient' && <button onClick={() => navigate('/my-orders')}>My Orders &nbsp;&nbsp;📦︎</button>}
+              {user?.role === 'doctor' && <button onClick={() => navigate('/update-fee')}>Set Fee</button>}
+                {user?.role === 'patient' && <button onClick={() => navigate('/search')}>Find a Doctor &nbsp;&nbsp;🔎︎</button>}
+                {user?.role === 'patient' && <button onClick={() => navigate('/lab-tests')}>Lab Test &nbsp;&nbsp;☤</button>}
+                {user?.role === 'patient' && <button onClick={() => navigate('/lab-reports')}>Your Reports &nbsp;&nbsp;📄</button>}
+                {user?.role === 'patient' && <button onClick={() => navigate('/medicines')}>My Medicines &nbsp;&nbsp;⚗</button>}
+                {user?.role === 'patient' && <button onClick={() => navigate('/my-orders')}>My Orders &nbsp;&nbsp;📦︎</button>}
+          </div>
+          <div className='contents'>
+              <h1 className='namehead'>Hii, {user?.fullname || user?.managerName || 'User'} </h1>
+              <h1>Welcome Back !</h1>
 
-        </div>
-        <div className='contents'>
-            <h1 className='namehead'>Hii, {user?.fullname || user?.managerName || 'User'} </h1>
-            <h1>Welcome Back !</h1>
-
-            <div className='banner'>
-              <div className='text'>
-                <h3>Have You Had a <br/> Routine Health Check <br/> this Month ?</h3>
-                <div className='buttons' style={{display:'flex', gap:'3vw'}}>
-                  <button>Check Now</button>
-                  <button>View Report</button>
+              <div className='banner'>
+                <div className='text'>
+                  <h3>Have You Had a <br/> Routine Health Check <br/> this Month ?</h3>
+                  <div className='buttons' style={{display:'flex', gap:'3vw'}}>
+                    <button>Check Now</button>
+                    <button>View Report</button>
+                  </div>
+                </div>
+                <div className='heroDoctor' style={{width:'50%',display:'flex', justifyContent:'center', alignItems: 'center'}}>
+                  <img style={{height:'40vh'}} src={heroDoctor}/>
                 </div>
               </div>
-              <div className='heroDoctor' style={{width:'50%',display:'flex', justifyContent:'center', alignItems: 'center'}}>
-                <img style={{height:'40vh'}} src={heroDoctor}/>
-              </div>
-            </div>
 
-            <div className='secDiv'>
-              <div>Orthopedic</div>
-              <div>Cardiologist</div>
-              <div>Oncologist</div>
-              <div>Neurologist</div>
-              <div>Pediatrician</div>
-              <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
-                <span className={`fade-text ${hovered ? 'visible' : ''}`}>
-                  {hovered ? 'View More >' : 'View More'}
-                </span>
+              <div className='secDiv'>
+                <div>Orthopedic</div>
+                <div>Cardiologist</div>
+                <div>Oncologist</div>
+                <div>Neurologist</div>
+                <div>Pediatrician</div>
+                <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+                  <span className={`fade-text ${hovered ? 'visible' : ''}`}>
+                    {hovered ? 'View More >' : 'View More'}
+                  </span>
+                </div>
               </div>
-            </div>
-
-        </div>
-        <div className='rightBar' style={{backgroundColor: 'rgb(152, 211, 255)',display:'flex',flexDirection:'column'}}>
-            <h3 style={{fontSize:'1em', color:'rgb(30, 30, 30)', width:'fit-content',marginLeft:'2vh'}}>Upcoming Check Up</h3>
-            <div className='calendar' style={{height:'35%',width:'90%',backgroundColor:'white',marginLeft:'2vh',borderRadius:'2vh'}}>
-              
-              {appointments.length > 0 && <Calendar1 data={appointments[0].time} />}
-            </div>
-
-            <div className='insuranceBalance' style={{height:'10%',width:'90%',backgroundColor:'white',marginLeft:'2vh',borderRadius:'2vh',marginTop: '2vh',display:'flex',justifyContent:'center',alignItems:'center',gap:'2%'}}>
-              <div>
-                Insurance Balance
+          </div>
+          <div className='rightBar' style={{backgroundColor: 'rgb(152, 211, 255)',display:'flex',flexDirection:'column'}}>
+              <h3 style={{fontSize:'1em', color:'rgb(30, 30, 30)', width:'fit-content',marginLeft:'2vh'}}>Upcoming Check Up</h3>
+              <div className='calendar' style={{height:'35%',width:'90%',backgroundColor:'white',marginLeft:'2vh',borderRadius:'2vh'}}>
+                {appointments.length > 0 && <Calendar1 data={appointments[0].time} />}
               </div>
-              <div>
-                ₹24,000
+              <div className='insuranceBalance' style={{height:'10%',width:'90%',backgroundColor:'white',marginLeft: '2vh',borderRadius:'2vh',marginTop: '2vh',display:'flex',justifyContent:'center',alignItems:'center',gap:'2%'}}>
+                <div>
+                  Insurance Balance
+                </div>
+                <div>
+                  ₹24,000
+                </div>
               </div>
-            </div>
+          </div>
         </div>
-      </div>
-      <div className="dashboard-container">
-        <div className="dashboard-header">
-          <h1>Welcome, {user?.fullname || user?.managerName || 'User'}!</h1>
-        </div>
-        <div className="dashboard-actions-row">
-          {user?.role === 'lab' ? (
-            <>
-              <button onClick={() => navigate('/lab-dashboard')}>Lab Dashboard</button>
-              <button onClick={() => navigate('/lab-profile')}>Lab Profile</button>
-              <button onClick={handleLogout}>Log Out</button>
-            </>
-          ) : (
-            <>
+      )}
+      {/* Doctor Sidebar Layout - ONLY for doctors, do not touch patient/lab code */}
+      {user?.role === 'doctor' && (
+        <div className="doctor-dashboard-main">
+          <style>{`
+            .doctor-dashboard-main {
+              display: flex;
+              min-height: 80vh;
+              background: #f7fbff;
+            }
+            .doctor-sidebar {
+              width: 260px;
+              background: #fff;
+              border-right: 1px solid #e3eaf3;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              padding: 0 24px;
+              box-shadow: 2px 0 8px rgba(0,123,255,0.03);
+              min-height: 100vh;
+            }
+            .doctor-sidebar .sidebar-title {
+              font-size: 1.5em;
+              font-weight: bold;
+              color: #007bff;
+              margin-bottom: 40px;
+              margin-top: 0;
+              text-align: center;
+              width: 100%;
+            }
+            .doctor-sidebar .sidebar-buttons {
+              display: flex;
+              flex-direction: column;
+              gap: 22px;
+              width: 100%;
+            }
+            .doctor-sidebar button {
+              width: 100%;
+              padding: 14px 0;
+              font-size: 1.08em;
+              border: none;
+              border-radius: 8px;
+              background: #f2f8fd;
+              color: #007bff;
+              font-weight: 600;
+              box-shadow: 0 2px 8px rgba(0,123,255,0.04);
+              transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+              cursor: pointer;
+              outline: none;
+            }
+            .doctor-sidebar button:hover, .doctor-sidebar button:focus {
+              background: #007bff;
+              color: #fff;
+              box-shadow: 0 4px 16px rgba(0,123,255,0.10);
+            }
+            .doctor-main-content {
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              padding: 60px 32px 32px 32px;
+            }
+            .doctor-welcome-card {
+              background: #fff;
+              border-radius: 18px;
+              box-shadow: 0 4px 24px rgba(0,123,255,0.07);
+              padding: 48px 40px;
+              max-width: 600px;
+              width: 100%;
+              text-align: center;
+              margin-bottom: 40px;
+            }
+            .doctor-welcome-card h1 {
+              color: #222;
+              font-size: 2.3em;
+              margin-bottom: 12px;
+            }
+            .doctor-welcome-card .doctor-name {
+              color: #007bff;
+              font-weight: bold;
+            }
+            .doctor-welcome-card p {
+              color: #555;
+              font-size: 1.1em;
+            }
+            @media (max-width: 900px) {
+              .doctor-dashboard-main { flex-direction: column; }
+              .doctor-sidebar { width: 100%; flex-direction: row; align-items: flex-start; justify-content: space-around; padding: 18px 0; box-shadow: none; border-right: none; border-bottom: 1px solid #e3eaf3; min-height: unset; }
+              .doctor-sidebar .sidebar-title { display: none; }
+              .doctor-sidebar .sidebar-buttons { flex-direction: row; gap: 12px; }
+              .doctor-sidebar button { width: auto; padding: 10px 18px; }
+            }
+          `}</style>
+          <div className="doctor-sidebar">
+            <div className="sidebar-title">Doctor Panel</div>
+            <div className="sidebar-buttons">
               <button onClick={() => navigate('/profile')}>Update Profile</button>
-              {user?.role === 'doctor' && <button onClick={() => navigate('/update-fee')}>Set Fee</button>}
-              {user?.role === 'patient' && <button onClick={() => navigate('/search')}>Find a Doctor</button>}
-              {user?.role === 'patient' && <button onClick={() => navigate('/lab-tests')}>Lab Test</button>}
-              {user?.role === 'patient' && <button onClick={() => navigate('/lab-reports')}>Your Reports</button>}
-              {user?.role === 'patient' && <button onClick={() => navigate('/medicines')}>My Medicines</button>}
-              {user?.role === 'patient' && <button onClick={() => navigate('/my-orders')}>My Orders</button>}
-
-              <button onClick={fetchAppointments}>Your Appointments</button>
-              <button onClick={fetchOnlineAppointments}>Your Online Appointments</button>
-          <button onClick={handleLogout}>Log Out</button>
-            </>
-          )}
+              <button onClick={() => navigate('/update-fee')}>Set Fee</button>
+              <button onClick={() => navigate('/doctor/appointments')}>Your Appointments</button>
+              <button onClick={() => navigate('/doctor/online-appointments')}>Your Online Appointments</button>
+              <button onClick={handleLogout}>Log Out</button>
+            </div>
+          </div>
+          <div className="doctor-main-content">
+            <div className="doctor-welcome-card">
+              <h1>Welcome, <span className="doctor-name">{user?.fullname || user?.managerName || 'Doctor'}</span>!</h1>
+              <p>Manage your appointments, set your fee, and update your profile from the sidebar. Have a great day!</p>
+            </div>
+            {/* You can add more doctor-specific widgets or info here */}
+          </div>
         </div>
-
-        {view && user?.role !== 'lab' && (
-          <div>
-            {loading && <p>Loading appointments...</p>}
-            {error && <p style={{ color: 'red' }}>{error}</p>}
-            {!loading && !error && (
+      )}
+      {/* Existing patient/lab dashboard code remains below, but NOT for doctors */}
+      {user?.role !== 'doctor' && (
+        <div className="dashboard-container">
+          <div className="dashboard-header">
+            <h1>Welcome, {user?.fullname || user?.managerName || 'User'}!</h1>
+          </div>
+          <div className="dashboard-actions-row">
+            {user?.role === 'lab' ? (
+              <div className="lab-dashboard-root">
+                <style>{`
+                  .lab-dashboard-root {
+                    min-height: 100vh;
+                    background: linear-gradient(120deg, #e0f7fa 0%, #e3f0ff 40%, #e6f7ff 100%);
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: flex-start;
+                    padding-top: 60px;
+                  }
+                  .lab-dashboard-card {
+                    background: #fff;
+                    border-radius: 24px;
+                    box-shadow: 0 8px 32px rgba(0, 123, 255, 0.10);
+                    padding: 48px 40px 40px 40px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    min-width: 420px;
+                    margin-bottom: 40px;
+                  }
+                  .lab-dashboard-title {
+                    font-size: 2.5em;
+                    font-weight: 800;
+                    color: #007bff;
+                    margin-bottom: 36px;
+                    text-align: center;
+                    letter-spacing: 1px;
+                  }
+                  .lab-dashboard-btn-group {
+                    display: flex;
+                    gap: 28px;
+                    margin-bottom: 10px;
+                  }
+                  .lab-dashboard-btn {
+                    background: #e3f0ff;
+                    color: #007bff;
+                    border: 2px solid #b3d1ff;
+                    border-radius: 12px;
+                    padding: 18px 38px;
+                    font-size: 1.25em;
+                    font-weight: 700;
+                    cursor: pointer;
+                    box-shadow: 0 2px 8px rgba(0,123,255,0.10);
+                    transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.1s;
+                  }
+                  .lab-dashboard-btn:hover {
+                    background: #007bff;
+                    color: #fff;
+                    box-shadow: 0 6px 18px rgba(0,123,255,0.13);
+                    transform: translateY(-2px) scale(1.03);
+                  }
+                  @media (max-width: 600px) {
+                    .lab-dashboard-card { min-width: unset; width: 95vw; padding: 32px 8vw; }
+                    .lab-dashboard-btn-group { flex-direction: column; gap: 18px; }
+                  }
+                `}</style>
+                <div className="lab-dashboard-card">
+                  <div className="lab-dashboard-title">Welcome, {user.fullname || 'Lab'}!</div>
+                  <div className="lab-dashboard-btn-group">
+                    <button className="lab-dashboard-btn" onClick={() => navigate('/lab-dashboard')}>Lab Bookings</button>
+                    <button className="lab-dashboard-btn" onClick={() => navigate('/lab-profile')}>Lab Profile</button>
+                    <button className="lab-dashboard-btn" onClick={handleLogout}>Log Out</button>
+                  </div>
+                </div>
+              </div>
+            ) : (
               <>
-                {renderAppointments(view === 'online' ? onlineAppointments : appointments)}
-                {view === 'online' && renderVideoCallCards(onlineAppointments)}
+                <button onClick={() => navigate('/profile')}>Update Profile</button>
+                {user?.role === 'doctor' && <button onClick={() => navigate('/update-fee')}>Set Fee</button>}
+                {user?.role === 'patient' && <button onClick={() => navigate('/search')}>Find a Doctor</button>}
+                {user?.role === 'patient' && <button onClick={() => navigate('/lab-tests')}>Lab Test</button>}
+                {user?.role === 'patient' && <button onClick={() => navigate('/lab-reports')}>Your Reports</button>}
+                {user?.role === 'patient' && <button onClick={() => navigate('/medicines')}>My Medicines</button>}
+                {user?.role === 'patient' && <button onClick={() => navigate('/my-orders')}>My Orders</button>}
+
+                {user?.role === 'doctor' && <button onClick={() => navigate('/doctor/appointments')}>Your Appointments</button>}
+                {user?.role === 'doctor' && <button onClick={() => navigate('/doctor/online-appointments')}>Your Online Appointments</button>}
+                {user?.role === 'patient' && <button onClick={fetchAppointments}>Your Appointments</button>}
+                {user?.role === 'patient' && <button onClick={fetchOnlineAppointments}>Your Online Appointments</button>}
+                <button onClick={handleLogout}>Log Out</button>
               </>
             )}
           </div>
-        )}
-      </div>
+
+          {view && user?.role !== 'lab' && (
+            <div>
+              {loading && <p>Loading appointments...</p>}
+              {error && <p style={{ color: 'red' }}>{error}</p>}
+              {!loading && !error && (
+                <>
+                  {renderAppointments(view === 'online' ? onlineAppointments : appointments)}
+                  {view === 'online' && renderVideoCallCards(onlineAppointments)}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }
