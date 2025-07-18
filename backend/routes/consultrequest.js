@@ -22,6 +22,8 @@ router.post('/',async (req,res)=>{
         await Patient.findByIdAndUpdate(patient,{
             $push: {onlineAppointment: {roomId,doctor:dName,patient:pName}}
         });
+
+        console.log('Online meeting booked');
     
         res.status(201).json({message:"Meeting created successfully"});
     } catch (error) {

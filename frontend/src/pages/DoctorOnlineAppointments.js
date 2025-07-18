@@ -16,12 +16,10 @@ export default function DoctorOnlineAppointments() {
       setLoading(true);
       setError('');
       try {
-        const { data } = await API.get('/api/getonlinemeetings', {
-          params: {
-            id: user.id,
-            role: user.role
-          }
-        });
+        const view = 'online';
+        const { data } = await API.get('/api/appointments',{params: { view: 'online' }});
+        console.log("ye lo\n",data);
+        
         setOnlineAppointments(data);
       } catch (err) {
         setError('Failed to fetch online appointments.');
@@ -33,26 +31,32 @@ export default function DoctorOnlineAppointments() {
     fetchOnlineAppointments();
   }, [user]);
 
-  const handleTimeChange = (roomId, value) => {
-    setTimeInputs(prev => ({ ...prev, [roomId]: value }));
+  const handleTimeChange = (id, value) => {
+    setTimeInputs(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleSetOnlineTime = async (roomId) => {
+  const handleSetOnlineTime = async (id) => {
     try {
-      const time = timeInputs[roomId];
+      const time = timeInputs[id];
       if (!time) {
         alert('Please select a time.');
         return;
       }
-      const { data } = await API.put(`/api/getonlinemeetings/setonlinemeetingtime/${roomId}`, { time });
-      setOnlineAppointments(prev => prev.map(m => m.roomId === roomId ? data.updatedMeeting : m));
+      const view = 'online'; 
+      const { data } = await API.put(`/api/appointments/${id}/time`, { time, view });
+      const updateList = (list) => list.map(a => a._id === id ? data.appointment : a);
+
+      if (view === 'online') {
+        setOnlineAppointments(prev => updateList(prev));
+      }
+
       setTimeInputs(prev => {
         const newInputs = { ...prev };
-        delete newInputs[roomId];
+        delete newInputs[id];
         return newInputs;
       });
     } catch (err) {
-      alert('Failed to set online meeting time.');
+      alert('Failed to set time.');
       console.error(err);
     }
   };
@@ -215,10 +219,10 @@ export default function DoctorOnlineAppointments() {
                   <div className="doctor-appt-actions-premium">
                     <input
                       type="datetime-local"
-                      value={timeInputs[meeting.roomId] || ''}
-                      onChange={e => handleTimeChange(meeting.roomId, e.target.value)}
+                      value={timeInputs[meeting._id] || ''}
+                      onChange={e => handleTimeChange(meeting._id, e.target.value)}
                     />
-                    <button onClick={() => handleSetOnlineTime(meeting.roomId)}>Set Time & Confirm</button>
+                    <button onClick={() => {handleSetOnlineTime(meeting._id); console.log(meeting); }}>Set Time & Confirm</button>
                   </div>
                   <div className="doctor-appt-actions-premium">
                     <button

@@ -21,25 +21,8 @@ const PatientSchema = new mongoose.Schema({
   ],
   onlineAppointment: [
     {
-      doctor: {
-        type: String,
-        ref: 'Doctor',
-        required: true,
-      },
-      patient: {
-        type: String,
-        ref: 'Patient',
-      },
-      roomId: {
-        type: String,
-        required: true,
-      },
-      status: {
-        type: String,
-        enum: ['Pending', 'Confirmed', 'Cancelled'],
-        default: 'Pending'
-      },
-      
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'OnlineAppointment'
     }
   ],
 }, { timestamps: true });

@@ -5,13 +5,15 @@ import axios from 'axios';
 const BookAppointment = () => {
   const { docId } = useParams();
   const [doctor, setDoctor] = useState(null);
+  const [loading, setLoading] = useState(true);
   const storedUser = JSON.parse(localStorage.getItem('user'));
 
   const [form, setForm] = useState({
     name: storedUser?.fullname || '',
     email: storedUser?.email || '',
     phone: '',
-    message: ''
+    message: '',
+    appointmentType: 'offline' // default type
   });
 
   const [error, setError] = useState('');
@@ -54,8 +56,10 @@ const BookAppointment = () => {
             ...response,
             doctorId: docId,
             patientId: storedUser?.id,
+            appointmentType: form.appointmentType,
             ...form
           });
+
           setSuccess('Appointment booked successfully!');
           setShowPopup(true);
         },
@@ -193,6 +197,7 @@ const BookAppointment = () => {
         <div className="fees-display">Appointment Fee: ₹{doctor.fees}</div>
         {error && <p className="error">{error}</p>}
         {success && <p className="success">{success}</p>}
+
         <form onSubmit={(e) => { e.preventDefault(); handlePayment(); }}>
           <div className="form-group">
             <label>Your Name *</label>
@@ -225,6 +230,32 @@ const BookAppointment = () => {
               onChange={handleChange}
               required
             />
+          </div>
+
+          <div className="form-group">
+            <label>Appointment Type *</label>
+            <div style={{ display: 'flex', gap: '20px', marginTop: '8px' }}>
+              <label>
+                <input
+                  type="radio"
+                  name="appointmentType"
+                  value="offline"
+                  checked={form.appointmentType === 'offline'}
+                  onChange={handleChange}
+                />{' '}
+                Offline
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="appointmentType"
+                  value="online"
+                  checked={form.appointmentType === 'online'}
+                  onChange={handleChange}
+                />{' '}
+                Online
+              </label>
+            </div>
           </div>
 
           <div className="form-group">

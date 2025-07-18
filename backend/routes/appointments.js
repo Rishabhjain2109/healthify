@@ -7,6 +7,7 @@ const Appointment = require('../models/Appointment');
 const Patient = require('../models/Patient');
 const Doctor = require('../models/Doctor');
 const auth = require('../middleware/auth');
+const OnlineAppointments = require('../models/OnlineAppointments');
 
 dotenv.config();
 
@@ -14,16 +15,34 @@ dotenv.config();
 router.get('/', auth, async (req, res) => {
   try {
     const { id, role } = req.user;
+    const view = req.query.view;
+
+    console.log(req.body);
     let appointments;
-    if (role === 'patient') {
-      // For patients, find appointments where their ID matches and populate doctor's name and fees
-      appointments = await Appointment.find({ 'patient.id': id }).populate('doctor', 'fullname fees');
-    } else if (role === 'doctor') {
-      // For doctors, find all their appointments
-      appointments = await Appointment.find({ doctor: id });
-    } else {
-      // If the role is neither patient nor doctor, deny access
-      return res.status(403).json({ message: 'Forbidden' });
+    
+    if(view === 'online'){
+        
+        if (role === 'patient') {
+            // For patients, find appointments where their ID matches and populate doctor's name and fees
+            appointments = await OnlineAppointments.find({ 'patient.id': id }).populate('doctor', 'fullname fees');
+        } else if (role === 'doctor') {
+        // For doctors, find all their appointments
+            appointments = await OnlineAppointments.find({ 'doctor.id': id });
+        } else {
+            // If the role is neither patient nor doctor, deny access
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+    }else{
+        if (role === 'patient') {
+            // For patients, find appointments where their ID matches and populate doctor's name and fees
+            appointments = await Appointment.find({ 'patient.id': id }).populate('doctor', 'fullname fees');
+        } else if (role === 'doctor') {
+        // For doctors, find all their appointments
+            appointments = await Appointment.find({ 'doctor.id': id });
+        } else {
+            // If the role is neither patient nor doctor, deny access
+            return res.status(403).json({ message: 'Forbidden' });
+        }
     }
     res.json(appointments);
   } catch (error) {
@@ -35,25 +54,37 @@ router.get('/', auth, async (req, res) => {
 // Route for doctors to set/update appointment time
 router.put('/:id/time', auth, async (req, res) => {
     // Check if the user is a doctor
-    if (req.user.role !== 'doctor') {
-        return res.status(403).json({ message: 'Access denied. Only doctors can perform this action.' });
-    }
+    console.log("Doctor yahan hai : ",req.user.role !== 'doctor');
+    
+    // if (req.user.role !== 'doctor') {
+    //     return res.status(403).json({ message: 'Access denied. Only doctors can perform this action.' });
+    // }
 
     try {
-        const { time } = req.body;
+        const { time, view } = req.body;
+        console.log("Maine log kiya\n",req.body);
+        console.log(req.params.id);
+        
         const appointmentId = req.params.id;
 
         // Find the appointment by ID
-        const appointment = await Appointment.findById(appointmentId);
+        let appointment;
+
+        if(view === 'offline'){
+            appointment = await Appointment.findById(appointmentId);
+        }else{
+            appointment = await OnlineAppointments.findById(appointmentId);
+            // console.log(OnlineAppointments);
+        }
 
         if (!appointment) {
             return res.status(404).json({ message: 'Appointment not found.' });
         }
 
         // Verify that the doctor updating the appointment is the one assigned to it
-        if (appointment.doctor.toString() !== req.user.id.toString()) {
-            return res.status(403).json({ message: 'You are not authorized to update this appointment.' });
-        }
+        // if (appointment.doctor.toString() !== req.user.id.toString()) {
+        //     return res.status(403).json({ message: 'You are not authorized to update this appointment.' });
+        // }
 
         // Update the appointment time and status
         appointment.time = time;
@@ -108,7 +139,28 @@ router.post('/',async (req,res)=>{
         console.error(error);
         res.status(500).json({ message: "Failed to book appointment." });
     }
-})
+});
+
+router.get('/online-appointments', auth, async (req, res) => {
+  try {
+    const { id, role } = req.user;
+    let appointments;
+    if (role === 'patient') {
+      // For patients, find appointments where their ID matches and populate doctor's name and fees
+      appointments = await OnlineAppointments.find({ 'patient.id': id }).populate('doctor', 'fullname fees');
+    } else if (role === 'doctor') {
+      // For doctors, find all their appointments
+      appointments = await OnlineAppointments.find({ doctor: id });
+    } else {
+      // If the role is neither patient nor doctor, deny access
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    res.json(appointments);
+  } catch (error) {
+    console.error('Error fetching appointments:', error);
+    res.status(500).json({ message: 'Server error while fetching appointments' });
+  }
+});
 
 module.exports = router;
 

@@ -6,6 +6,7 @@ const Appointment = require('../models/Appointment');
 const Doctor = require('../models/Doctor');
 const Patient = require('../models/Patient');
 console.log("Razorpay key:", process.env.RAZORPAY_KEY_ID); // should print your key
+const OnlineAppointments = require('../models/OnlineAppointments');
 
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -45,7 +46,8 @@ router.post('/verify-payment', async (req, res) => {
             name,
             email,
             phone,
-            message
+            message,
+            appointmentType
         } = req.body;
 
         const generated_signature = crypto
@@ -63,31 +65,74 @@ router.post('/verify-payment', async (req, res) => {
         }
 
         // Ensure doctor field is set to the doctor's _id
-        const newAppointment = new Appointment({
-            doctor: doctor._id, // <-- always use the doctor's _id
-            patient: {
-                id: patientId,
-                name,
-                email,
-                phone
-            },
-            message,
-            fees: doctor.fees,
-            paymentStatus: 'Paid',
-            razorpay: {
-                orderId: razorpay_order_id,
-                paymentId: razorpay_payment_id,
-                signature: razorpay_signature
-            },
-            status: 'Pending'
-        });
-        
-        await newAppointment.save();
+        let newAppointment;
 
-        await Doctor.findByIdAndUpdate(doctorId, { $push: { appointments: newAppointment._id } });
-        await Patient.findByIdAndUpdate(patientId, { $push: { appointments: newAppointment._id } });
-        
+        if(appointmentType == 'offline'){
+            newAppointment = new Appointment({
+                doctor: {
+                    id: doctorId,
+                    name: doctor.fullname,
+                    email: doctor.email,
+                    phone: doctor.phone,
+                    specialiazation: doctor.specialty,
+                },
+                patient: {
+                    id: patientId,
+                    name,
+                    email,
+                    phone
+                },
+                message,
+                fees: doctor.fees,
+                paymentStatus: 'Paid',
+                razorpay: {
+                    orderId: razorpay_order_id,
+                    paymentId: razorpay_payment_id,
+                    signature: razorpay_signature
+                },
+                status: 'Pending'
+            });
+
+            await Doctor.findByIdAndUpdate(doctorId, { $push: { appointments: newAppointment._id } });
+            await Patient.findByIdAndUpdate(patientId, { $push: { appointments: newAppointment._id } });
+
+        }else{
+
+            newAppointment = new OnlineAppointments({
+                doctor : {
+                    id: doctorId,
+                    name: doctor.fullname,
+                    email: doctor.email,
+                    phone: doctor.phone,
+                    specialiazation: doctor.specialty,
+                },
+                patient : {
+                    id: patientId,
+                    name,
+                    email,
+                    phone
+                },
+                roomId : `room_${Date.now()}`,
+                status : 'Pending',
+                message,
+                fees : doctor.fees,
+                paymentStatus : 'Paid',
+                razorpay: {
+                    orderId : razorpay_order_id,
+                    paymentId : razorpay_payment_id,
+                    signature : razorpay_signature
+                }
+            });
+
+            // console.log("Idhar hai\n",newAppointment);
+
+            await Doctor.findByIdAndUpdate(doctorId, { $push: { onlineMeetings: newAppointment._id } });
+            await Patient.findByIdAndUpdate(patientId, { $push: { onlineAppointment: newAppointment._id } });
+
+        }
         res.status(201).json(newAppointment);
+        await newAppointment.save();
+        
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Payment verification failed" });

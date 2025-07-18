@@ -25,32 +25,6 @@ const DoctorProfile = () => {
     loadDetails();
   }, [id]);
 
-  const handleOnlineConsultation = async ()=>{
-    if(!doc) return;
-    const roomId = `room_${Date.now()}`;
-
-    setLoading(true);
-
-    const user = JSON.parse(localStorage.getItem('user'));
-
-    try {
-      await axios.post('http://localhost:5000/api/consult-request', {
-        roomId,
-        patient: user.id,
-        doctor: doc._id,
-        pName: user.fullname,
-        dName: doc.fullname
-      });
-
-      navigate(`/video-call/${roomId}`);
-    } catch (err) {
-      console.error('Failed to send consultation request:', err);
-      alert('Unable to initiate online consultation. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
   if (error) {
     return <p style={{ textAlign: 'center', color: 'red', marginTop: '50px' }}>{error}</p>;
   }
@@ -239,9 +213,6 @@ const DoctorProfile = () => {
 
             <button className="book-btn" onClick={() => navigate(`/book-appointment/${doc._id}`)}>
               Book Appointment
-            </button>
-            <button className="book-btn" onClick={handleOnlineConsultation}>
-              Online Consultation
             </button>
           </div>
         </div>

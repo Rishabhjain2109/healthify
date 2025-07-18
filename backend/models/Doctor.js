@@ -17,20 +17,9 @@ const DoctorSchema = new mongoose.Schema({
   ],
   onlineMeetings: [
     {
-          doctor: {
-            type: String,
-            ref: 'Doctor',
-          },
-          patient: {
-            type: String,
-            ref: 'Patient',
-            required: true,
-          },
-          roomId: {
-            type: String,
-            required: true,
-          }
-        }
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'OnlineAppointment'
+    }
   ],
   fees: {type: Number},
   // Location fields for distance filtering

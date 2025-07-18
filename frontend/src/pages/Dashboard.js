@@ -4,6 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import API from '../utils/axios';
 import heroDoctor from '../assets/Doctor.png'
 import Calendar1 from '../components/Calendar1';
+import profileImage from '../assets/man-profile-cartoon-smiling.jpg'
 
 
 function Dashboard() {
@@ -16,15 +17,10 @@ function Dashboard() {
   const [error, setError] = useState('');
   const [timeInputs, setTimeInputs] = useState({});
   const [view, setView] = useState('');
-  const [text,setText] = useState('View More');
   const [hovered, setHovered] = useState(false);
-  const handleMouseEnter = () => {
-    setText('View More >');
-  };
-
-  const handleMouseLeave = () => {
-    setText('View More');
-  };
+  const [mainContent, setMainContent] = useState('home');
+  const [appointmentType, setAppointmentType] = useState('offline');
+  const [contentFadeOut, setContentFadeOut] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -42,7 +38,8 @@ function Dashboard() {
         alert('Please select a time.');
         return;
       }
-      const { data } = await API.put(`/api/appointments/${id}/time`, { time });
+      // const mode = 'offline' ? 
+      const { data } = await API.put(`/api/appointments/${id}/time`, { time, view });
       const updateList = (list) => list.map(a => a._id === id ? data.appointment : a);
 
       if (view === 'online') {
@@ -68,6 +65,8 @@ function Dashboard() {
     setView('regular');
     try {
       const { data } = await API.get('/api/appointments');
+      console.log(data);
+      
       setAppointments(data);
     } catch (err) {
       setError('Failed to fetch appointments.');
@@ -82,12 +81,7 @@ function Dashboard() {
     setError('');
     setView('online');
     try {
-      const { data } = await API.get('/api/getonlinemeetings', {
-        params: {
-          id: user.id,
-          role: user.role
-        }
-      });
+      const { data } = await API.get('/api/appointments/online-appointments');
       console.log(data);
       
       setOnlineAppointments(data);
@@ -99,33 +93,6 @@ function Dashboard() {
     }
   };
 
-  const handleSetOnlineTime = async (roomId) => {
-    try {
-      const time = timeInputs[roomId];
-      if (!time) {
-        alert('Please select a time.');
-        return;
-      }
-
-      const { data } = await API.put(`/api/setonlinemeetingtime/${roomId}`, { time });
-
-      setOnlineAppointments(prev =>
-        prev.map(m => m.roomId === roomId ? data.updatedMeeting : m)
-      );
-
-      setTimeInputs(prev => {
-        const newInputs = { ...prev };
-        delete newInputs[roomId];
-        return newInputs;
-      });
-
-    } catch (err) {
-      alert('Failed to set online meeting time.');
-      console.error(err);
-    }
-  };
-
-
   const renderAppointments = (data) => {
     if(view === 'online') return null;
 
@@ -134,36 +101,50 @@ function Dashboard() {
       <h2>{user.role === 'patient' ? 'Your' : 'Patient'} {view === 'online' ? 'Online ' : ''}Appointments</h2>
       {data.length === 0 ? <p>No appointments found.</p> : (
         <div className="appointment-grid">
-          {data.map(app => (
-            <div key={app._id} className="appointment-card">
-              {user.role === 'patient' ? (
-                <>
-                  <h4>Dr. {app.doctor.fullname}</h4>
-                  <p><strong>Fee:</strong> ₹{app.fees}</p>
-                </>
-              ) : (
-                <>
-                  <h4>Patient: {app.patient.name}</h4>
-                  <p><strong>Email:</strong> {app.patient.email}</p>
-                  <p><strong>Phone:</strong> {app.patient.phone}</p>
-                </>
-              )}
-              <p><strong>Status:</strong> <span className={`status-${app.status}`}>{app.status}</span></p>
-              <p><strong>Time:</strong> {app.time || 'Not set'}</p>
-              {user.role === 'doctor' && app.status === 'Pending' && (
-                <div className="time-setter">
-                  <input
-                    type="datetime-local"
-                    value={timeInputs[app._id] || ''}
-                    onChange={e => handleTimeChange(app._id, e.target.value)}
-                  />
-                  <button onClick={() => handleSetTime(app._id)}>Set Time & Confirm</button>
+          {data.map(app => {
+            const dateObj = app.time ? new Date(app.time) : null;
+            const dateStr = dateObj ? dateObj.toLocaleDateString() : 'Not set';
+            const timeStr = dateObj ? dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+            return (
+              <div key={app._id} className="appointment-card">
+                <div className="appointment-header">
+                  <h3>{user.role === 'patient' ? `Dr. ${app.doctor.name}` : `Patient: ${app.patient.name}`}</h3>
+                  <span className={`status-badge ${app.status.toLowerCase()}`}>{app.status}</span>
                 </div>
-              )}
-            </div>
-          ))}
+
+                <div className="appointment-body">
+                  {user.role === 'patient' ? (
+                    <p><strong>Specialization:</strong> {app.doctor.specialiazation}</p>
+                  ) : (
+                    <>
+                      <p><strong>Email:</strong> {app.patient.email}</p>
+                      <p><strong>Phone:</strong> {app.patient.phone}</p>
+                    </>
+                  )}
+
+                  <div className="datetime-section">
+                    <p><strong>Date:</strong> {dateStr}</p>
+                    <p><strong>Time:</strong> {timeStr || 'Not set'}</p>
+                  </div>
+
+                  {user.role === 'doctor' && app.status === 'Pending' && (
+                    <div className="time-setter">
+                      <input
+                        type="datetime-local"
+                        value={timeInputs[app._id] || ''}
+                        onChange={e => handleTimeChange(app._id, e.target.value)}
+                      />
+                      <button onClick={() => handleSetTime(app._id)}>Set & Confirm</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
-      )}
+
+        )}
     </div>
   )};
 
@@ -171,31 +152,66 @@ function Dashboard() {
     <div>
       <h2>Join Your Scheduled Video Calls</h2>
       {data.length === 0 ? <p>No video calls scheduled.</p> : (
-        <div className="video-call-cards">
-          {data.map((meeting, index) => (
-            <div key={index} className="card">
-              <p><strong>Room ID:</strong> {meeting.roomId}</p>
-              {user.role === 'doctor' && <p><strong>Patient:</strong> {meeting.patient}</p>}
-              {user.role === 'patient' && <p><strong>Doctor:</strong> {meeting.doctor}</p>}
-              <p><strong>Status:</strong> <span className={`status-${meeting.status}`}>{meeting.status}</span></p>
-              <p><strong>Time:</strong> {meeting.time || 'Not set'}</p>
+        <div className="appointment-grid">
+          {data.map((meeting) => {
+            const dateObj = meeting.time ? new Date(meeting.time) : null;
+            const dateStr = dateObj ? dateObj.toLocaleDateString() : 'Not set';
+            const timeStr = dateObj ? dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
-              {/* Time input for doctor if pending */}
-              {user.role === 'doctor' && (
-                <div className="time-setter">
-                  <input
-                    type="datetime-local"
-                    value={timeInputs[meeting.roomId] || ''}
-                    onChange={e => handleTimeChange(meeting.roomId, e.target.value)}
-                  />
-                  <button onClick={() => handleSetOnlineTime(meeting.roomId)}>Set Time & Confirm</button>
+            return (
+              <div key={meeting._id} className="appointment-card">
+                <div className="appointment-header">
+                  <h3>
+                    {user.role === 'patient'
+                      ? `Dr. ${meeting.doctor.name}`
+                      : `Patient: ${meeting.patient.name}`}
+                  </h3>
+                  <span className={`status-badge status-${meeting.status.toLowerCase()}`}>
+                    {meeting.status}
+                  </span>
                 </div>
-              )}
 
-              <button onClick={() => navigate(`/video-call/${meeting.roomId}`)}>Join Call</button>
-            </div>
-          ))}
+                <div className="appointment-body">
+                  {user.role === 'doctor' ? (
+                    <>
+                      <p><strong>Email:</strong> {meeting.patient.email}</p>
+                      <p><strong>Phone:</strong> {meeting.patient.phone}</p>
+                    </>
+                  ) : (
+                    <p><strong>Specialization:</strong> {meeting.doctor.specialiazation}</p>
+                  )}
+
+                  <div className="datetime-section">
+                    <p><strong>Date:</strong> {dateStr}</p>
+                    <p><strong>Time:</strong> {timeStr || 'Not set'}</p>
+                  </div>
+
+                  {user.role === 'doctor' && meeting.status === 'Pending' && (
+                    <div className="time-setter">
+                      <input
+                        type="datetime-local"
+                        value={timeInputs[meeting.roomId] || ''}
+                        onChange={e => handleTimeChange(meeting.roomId, e.target.value)}
+                      />
+                      <button onClick={() => handleSetTime(meeting._id)}>
+                        Set & Confirm
+                      </button>
+                    </div>
+                  )}
+
+                  {meeting.status !== 'Pending' && (
+                    <div className="card-footer">
+                      <button onClick={() => navigate(`/video-call/${meeting.roomId}`)}>
+                        Join Video Call
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
+
       )}
     </div>
   );
@@ -244,50 +260,239 @@ function Dashboard() {
         .dashboard-actions-row button:hover {
           background: #e0e0e0;
         }
-        .appointment-grid { 
-          display: grid; 
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
-          gap: 20px; 
-        }
-        .appointment-card { 
-          background: #f9f9f9; 
-          border: 1px solid #ddd; 
-          padding: 20px; 
-          border-radius: 8px; 
-        }
-        .status-pending { color: orange; }
-        .status-confirmed { color: green; }
-        .time-setter { 
-          margin-top: 10px; 
-          display: flex; 
-          gap: 10px; 
-        }
-        .video-call-cards {
+        .appointment-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-          gap: 16px;
-          margin-top: 20px;
+          grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+          gap: 24px;
+          padding: 20px;
         }
-        .card {
-          border: 1px solid #ccc;
-          padding: 16px;
+
+        .appointment-card {
+          background: #ffffff;
+          border-radius: 12px;
+          padding: 24px;
+          box-shadow: 0 6px 18px rgba(0, 102, 204, 0.1);
+          border: 1px solid #d0e7ff;
+          transition: all 0.3s ease;
+        }
+
+        .appointment-card:hover {
+          box-shadow: 0 10px 28px rgba(0, 102, 204, 0.15);
+          transform: translateY(-2px);
+        }
+
+        .appointment-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+        }
+
+        .appointment-card h3 {
+          margin: 0;
+          font-size: 1.2rem;
+          color: #0056b3;
+        }
+
+        .appointment-body p {
+          margin: 6px 0;
+          color: #333;
+          font-size: 0.95rem;
+        }
+
+        .datetime-section {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 14px;
+          padding: 8px 12px;
+          background-color: #f0f8ff;
           border-radius: 8px;
-          background: #fff;
-          box-shadow: 0 1px 6px rgba(0,0,0,0.1);
-          text-align: center;
+          font-weight: 500;
+          color: #004080;
         }
-        .card button {
-          margin-top: 10px;
-          padding: 8px 16px;
+
+        .status-badge {
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          text-transform: capitalize;
+          background-color: #e6f0ff;
+          color: #004080;
+          border: 1px solid #cce0ff;
+        }
+
+        .status-pending {
+          background-color: #d0e7ff;
+          color: #004080;
+          border-color: #aacfff;
+        }
+
+        .status-confirmed {
+          background-color: #b3daff;
+          color: #003366;
+          border-color: #99ccff;
+        }
+
+        .time-setter {
+          margin-top: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .time-setter input[type="datetime-local"] {
+          padding: 10px 12px;
+          border-radius: 8px;
+          border: 1px solid #99c2ff;
+          font-size: 0.95rem;
+          background-color: #f0f8ff;
+          color: #003366;
+        }
+
+        .time-setter input[type="datetime-local"]::placeholder {
+          color: #99b3cc;
+        }
+
+        .time-setter button {
+          padding: 10px 16px;
           background-color: #007bff;
-          color: white;
           border: none;
-          border-radius: 5px;
+          border-radius: 8px;
+          color: white;
+          font-weight: 600;
           cursor: pointer;
+          transition: background-color 0.2s ease;
         }
-        .card button:hover {
+
+        .time-setter button:hover {
           background-color: #0056b3;
         }
+
+        .video-call-cards {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+          gap: 24px;
+          padding: 20px;
+        }
+
+        .card {
+          background: #ffffff;
+          border-radius: 12px;
+          padding: 24px;
+          box-shadow: 0 6px 18px rgba(0, 102, 204, 0.1);
+          border: 1px solid #d0e7ff;
+          transition: all 0.3s ease;
+        }
+
+        .card:hover {
+          box-shadow: 0 10px 28px rgba(0, 102, 204, 0.15);
+          transform: translateY(-2px);
+        }
+
+        .card-header {
+          font-size: 1.1rem;
+          font-weight: 600;
+          color: #0056b3;
+          margin-bottom: 12px;
+        }
+
+        .card-body p {
+          margin: 6px 0;
+          color: #333;
+          font-size: 0.95rem;
+        }
+
+        .status-pill {
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          text-transform: capitalize;
+          background-color: #e6f0ff;
+          color: #004080;
+          border: 1px solid #cce0ff;
+          margin-left: 6px;
+        }
+
+        .status-pending {
+          background-color: #d0e7ff;
+          color: #004080;
+          border-color: #aacfff;
+        }
+
+        .status-confirmed {
+          background-color: #b3daff;
+          color: #003366;
+          border-color: #99ccff;
+        }
+
+        .datetime-section {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 14px;
+          padding: 8px 12px;
+          background-color: #f0f8ff;
+          border-radius: 8px;
+          font-weight: 500;
+          color: #004080;
+        }
+
+        .time-setter {
+          margin-top: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .time-setter input[type="datetime-local"] {
+          padding: 10px 12px;
+          border-radius: 8px;
+          border: 1px solid #99c2ff;
+          font-size: 0.95rem;
+          background-color: #f0f8ff;
+          color: #003366;
+        }
+
+        .time-setter input[type="datetime-local"]::placeholder {
+          color: #99b3cc;
+        }
+
+        .time-setter button {
+          padding: 10px 16px;
+          background-color: #007bff;
+          border: none;
+          border-radius: 8px;
+          color: white;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+        }
+
+        .time-setter button:hover {
+          background-color: #0056b3;
+        }
+
+        .card-footer {
+          margin-top: 16px;
+          text-align: center;
+        }
+
+        .card-footer button {
+          padding: 10px 16px;
+          background-color: #007bff;
+          border: none;
+          border-radius: 8px;
+          color: white;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+        }
+
+        .card-footer button:hover {
+          background-color: #0056b3;
+        }
+
         .main-page {
           width:100%;
           height: 100vh;
@@ -301,6 +506,7 @@ function Dashboard() {
           gap: 1em;
           padding: 1vw;
           border-right: 1px solid rgba(0, 0, 0, 0.44);
+          align-items: center;
         }
 
         .sidebar button{
@@ -309,7 +515,6 @@ function Dashboard() {
           background: white;
           border: none;
           transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
-          margin-left: 1vw;
         }
         
         .sidebar button:hover{
@@ -408,49 +613,157 @@ function Dashboard() {
           height: 2em;
           width: 1em;
         }
+        .animated-content {
+          transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .fade-in {
+          opacity: 1;
+          transform: translateY(0px);
+        }
+
+        .fade-out {
+          opacity: 0;
+          transform: translateY(20px);
+          pointer-events: none;
+        }
       `}</style>
 
       {user?.role === 'patient' && (
-        <div className='main-page'>
-          <div className='sidebar'>
-              SideBar
-
+        <div className='main-page' style={{backgroundColor:'#e3f3ff'}}>
+          <div className='sidebar' style={{backgroundColor:'white'}}>
+              <div style={{ marginBottom: '1em' }}>
+                <img
+                  src={profileImage}
+                  alt="Profile"
+                  style={{
+                    width: '80px',
+                    height: '80px',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    border: '2px solid #ccc',
+                  }}
+                />
+                <div style={{ marginTop: '0.5em', fontWeight: 'bold' }}>{user?.fullname || "User"} <span style={{cursor:'pointer'}} onClick={() => navigate('/profile')}>📝</span></div>
+              </div>
+              
               {user?.role === 'doctor' && <button onClick={() => navigate('/update-fee')}>Set Fee</button>}
+                {user?.role === 'patient' && <button onClick={() =>{
+                  setContentFadeOut(true);
+                  setTimeout(() => {
+                    setMainContent('home');
+                    setContentFadeOut(false);
+                  }, 300);
+                }}>Dashboard</button>}
+                {user?.role === 'patient' && <button onClick={() => {
+                  setContentFadeOut(true);
+                  setTimeout(() => {
+                    setMainContent('appointments');
+                    setContentFadeOut(false);
+                  }, 300);
+                }}>Your Appointments</button>}
                 {user?.role === 'patient' && <button onClick={() => navigate('/search')}>Find a Doctor &nbsp;&nbsp;🔎︎</button>}
-                {user?.role === 'patient' && <button onClick={() => navigate('/lab-tests')}>Lab Test &nbsp;&nbsp;☤</button>}
                 {user?.role === 'patient' && <button onClick={() => navigate('/lab-reports')}>Your Reports &nbsp;&nbsp;📄</button>}
-                {user?.role === 'patient' && <button onClick={() => navigate('/medicines')}>My Medicines &nbsp;&nbsp;⚗</button>}
                 {user?.role === 'patient' && <button onClick={() => navigate('/my-orders')}>My Orders &nbsp;&nbsp;📦︎</button>}
           </div>
-          <div className='contents'>
-              <h1 className='namehead'>Hii, {user?.fullname || user?.managerName || 'User'} </h1>
-              <h1>Welcome Back !</h1>
+          <div className={`contents animated-content ${contentFadeOut ? 'fade-out' : 'fade-in'}`} key={mainContent}>
+              {mainContent === 'home' && (
+                <>
+                  <h1 className='namehead'>Hii, {user?.fullname || user?.managerName || 'User'} </h1>
+                  <h1>Welcome Back !</h1>
 
-              <div className='banner'>
-                <div className='text'>
-                  <h3>Have You Had a <br/> Routine Health Check <br/> this Month ?</h3>
-                  <div className='buttons' style={{display:'flex', gap:'3vw'}}>
-                    <button>Check Now</button>
-                    <button>View Report</button>
+                  <div className='banner'>
+                    <div className='text'>
+                      <h3>Have You Had a <br/> Routine Health Check <br/> this Month ?</h3>
+                      <div className='buttons' style={{display:'flex', gap:'3vw'}}>
+                        <button>Check Now</button>
+                        <button>View Report</button>
+                      </div>
+                    </div>
+                    <div className='heroDoctor' style={{width:'50%',display:'flex', justifyContent:'center', alignItems: 'center'}}>
+                      <img style={{height:'40vh'}} src={heroDoctor}/>
+                    </div>
                   </div>
-                </div>
-                <div className='heroDoctor' style={{width:'50%',display:'flex', justifyContent:'center', alignItems: 'center'}}>
-                  <img style={{height:'40vh'}} src={heroDoctor}/>
-                </div>
-              </div>
 
-              <div className='secDiv'>
-                <div>Orthopedic</div>
-                <div>Cardiologist</div>
-                <div>Oncologist</div>
-                <div>Neurologist</div>
-                <div>Pediatrician</div>
-                <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
-                  <span className={`fade-text ${hovered ? 'visible' : ''}`}>
-                    {hovered ? 'View More >' : 'View More'}
-                  </span>
-                </div>
-              </div>
+                  <div className='secDiv'>
+                    <div>Orthopedic</div>
+                    <div>Cardiologist</div>
+                    <div>Oncologist</div>
+                    <div>Neurologist</div>
+                    <div>Pediatrician</div>
+                    <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+                      <span className={`fade-text ${hovered ? 'visible' : ''}`}>
+                        {hovered ? 'View More >' : 'View More'}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+              {mainContent === 'appointments' && (
+                <>
+                  <div style={{ display: 'flex', gap: '1em', marginBottom: '1em' }}>
+                    <div
+                      style={{
+                        backgroundColor: '#f0f0f0',
+                        padding: '0.5em',
+                        borderRadius: '12px',
+                        boxShadow: 'inset 2px 2px 4px #d1d1d1, inset -2px -2px 4px #ffffff',
+                        display: 'flex',
+                        gap: '0.5em',
+                        justifyContent: 'center',
+                        marginBottom: '2em',
+                      }}
+                    >
+                      <div
+                        onClick={() => {
+                          setAppointmentType('offline')
+                          fetchAppointments();
+                        }}
+                        style={{
+                          padding: '5px 10px',
+                          borderRadius: '10px',
+                          backgroundColor: appointmentType === 'offline' ? '#007bff' : '#f8f8f8',
+                          color: appointmentType === 'offline' ? '#fff' : '#000',
+                          boxShadow:
+                            appointmentType === 'offline'
+                              ? 'inset 1px 1px 2px rgba(0, 0, 0, 0.15), inset -1px -1px 2px rgba(255, 255, 255, 0.5)'
+                              : '1px 1px 3px rgba(0, 0, 0, 0.1)',
+                          border: 'none',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        Offline
+                      </div>
+                      <div
+                        onClick={() => {
+                          setAppointmentType('online');
+                          fetchOnlineAppointments();
+                        }}
+                        style={{
+                          padding: '5px 10px',
+                          borderRadius: '10px',
+                          backgroundColor: appointmentType === 'online' ? '#007bff' : '#f8f8f8',
+                          color: appointmentType === 'online' ? '#fff' : '#000',
+                          boxShadow:
+                            appointmentType === 'online'
+                              ? 'inset 1px 1px 2px rgba(0, 0, 0, 0.15), inset -1px -1px 2px rgba(255, 255, 255, 0.5)'
+                              : '1px 1px 3px rgba(0, 0, 0, 0.1)',
+                          border: 'none',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        Online
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {appointmentType === 'offline' && renderAppointments(appointments)}
+                  {appointmentType === 'online' && renderVideoCallCards(onlineAppointments)}
+                </>
+              )}
           </div>
           <div className='rightBar' style={{backgroundColor: 'rgb(152, 211, 255)',display:'flex',flexDirection:'column'}}>
               <h3 style={{fontSize:'1em', color:'rgb(30, 30, 30)', width:'fit-content',marginLeft:'2vh'}}>Upcoming Check Up</h3>
@@ -582,13 +895,13 @@ function Dashboard() {
         </div>
       )}
       {/* Existing patient/lab dashboard code remains below, but NOT for doctors */}
-      {user?.role !== 'doctor' && (
+      {user?.role === 'lab' && (
         <div className="dashboard-container">
           <div className="dashboard-header">
             <h1>Welcome, {user?.fullname || user?.managerName || 'User'}!</h1>
           </div>
           <div className="dashboard-actions-row">
-            {user?.role === 'lab' ? (
+            {user?.role === 'lab' && (
               <div className="lab-dashboard-root">
                 <style>{`
                   .lab-dashboard-root {
@@ -656,37 +969,8 @@ function Dashboard() {
                   </div>
                 </div>
               </div>
-            ) : (
-              <>
-                <button onClick={() => navigate('/profile')}>Update Profile</button>
-                {user?.role === 'doctor' && <button onClick={() => navigate('/update-fee')}>Set Fee</button>}
-                {user?.role === 'patient' && <button onClick={() => navigate('/search')}>Find a Doctor</button>}
-                {user?.role === 'patient' && <button onClick={() => navigate('/lab-tests')}>Lab Test</button>}
-                {user?.role === 'patient' && <button onClick={() => navigate('/lab-reports')}>Your Reports</button>}
-                {user?.role === 'patient' && <button onClick={() => navigate('/medicines')}>My Medicines</button>}
-                {user?.role === 'patient' && <button onClick={() => navigate('/my-orders')}>My Orders</button>}
-
-                {user?.role === 'doctor' && <button onClick={() => navigate('/doctor/appointments')}>Your Appointments</button>}
-                {user?.role === 'doctor' && <button onClick={() => navigate('/doctor/online-appointments')}>Your Online Appointments</button>}
-                {user?.role === 'patient' && <button onClick={fetchAppointments}>Your Appointments</button>}
-                {user?.role === 'patient' && <button onClick={fetchOnlineAppointments}>Your Online Appointments</button>}
-                <button onClick={handleLogout}>Log Out</button>
-              </>
             )}
           </div>
-
-          {view && user?.role !== 'lab' && (
-            <div>
-              {loading && <p>Loading appointments...</p>}
-              {error && <p style={{ color: 'red' }}>{error}</p>}
-              {!loading && !error && (
-                <>
-                  {renderAppointments(view === 'online' ? onlineAppointments : appointments)}
-                  {view === 'online' && renderVideoCallCards(onlineAppointments)}
-                </>
-              )}
-            </div>
-          )}
         </div>
       )}
     </>

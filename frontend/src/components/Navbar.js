@@ -25,7 +25,7 @@ const Navbar = () => {
   return (
     <nav className={`navbar ${isScrolled ? 'scrolled' : ''}`}>
       <div className="navbar-container">
-        <div className="navbar-logo">Healthify</div>
+        <div className="navbar-logo" style={{cursor:'pointer'}} onClick={()=>navigate('/dashboard')}>Healthify</div>
 
         <button className="menu-toggle" onClick={() => setIsOpen(!isOpen)}>
           ☰

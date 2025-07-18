@@ -15,6 +15,8 @@ export default function DoctorAppointments() {
       setError('');
       try {
         const { data } = await API.get('/api/appointments');
+        console.log("ye lo\n",data);
+        
         setAppointments(data);
       } catch (err) {
         setError('Failed to fetch appointments.');
@@ -37,7 +39,8 @@ export default function DoctorAppointments() {
         alert('Please select a time.');
         return;
       }
-      const { data } = await API.put(`/api/appointments/${id}/time`, { time });
+      const view = 'offline';
+      const { data } = await API.put(`/api/appointments/${id}/time`, { time, view });
       setAppointments(prev => prev.map(a => a._id === id ? data.appointment : a));
       setTimeInputs(prev => {
         const newInputs = { ...prev };
