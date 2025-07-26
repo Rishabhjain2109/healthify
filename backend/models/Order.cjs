@@ -10,6 +10,13 @@ const orderSchema = new mongoose.Schema({
     }
   ],
   totalCost: Number,
+  fulfilled: { type: Boolean, default: false }, // ✅ NEW FIELD
+  status: {
+    type: String,
+    enum: ['Order Placed', 'Order Accepted', 'Shipped', 'Out for Delivery', 'Delivered'],
+    default: 'Order Placed'
+  },
+
   createdAt: {
     type: Date,
     default: Date.now
