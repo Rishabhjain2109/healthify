@@ -116,9 +116,6 @@ const placeOrder = async (req, res) => {
       items,
       totalCost
     });
-
-    ;
-    // console.log('Saving order:', newOrder);
     await newOrder.save();
 
     // Reduce stock in MedicineList
@@ -145,7 +142,6 @@ const placeOrder = async (req, res) => {
     res.status(500).json({ error: 'Failed to place order' });
   }
 };
-
 
 
 const removeFromInventory = async (req, res) => {
