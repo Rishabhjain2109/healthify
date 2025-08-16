@@ -8,8 +8,8 @@ const VideoCallPage = () => {
   const videoContainerRef = useRef(null); // 👈 this will point to the container div
 
   useEffect(() => {
-    const appID = 695135268;
-    const serverSecret = "c2c58632cab3b8bb2899f0db982efc26";
+    const appID = 615991400;
+    const serverSecret = "a074bb14cd58ffba12e179054c99341b";
     const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
       appID,
       serverSecret,
