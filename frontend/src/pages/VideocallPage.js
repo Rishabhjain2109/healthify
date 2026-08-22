@@ -9,7 +9,9 @@ const VideoCallPage = () => {
 
   useEffect(() => {
     const appID = 615991400;
-    const serverSecret = "a074bb14cd58ffba12e179054c99341b";
+    const serverSecret = process.env.ZegoCloudApi;
+    // console.log(serverSecret);
+    
     const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
       appID,
       serverSecret,

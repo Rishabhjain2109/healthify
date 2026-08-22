@@ -21,19 +21,19 @@ function LabReportsPage() {
 
   // Status label mapping
   const getStatusLabel = (status, reportFile) => {
-    if (status?.toLowerCase() === 'completed' && reportFile) return 'REPORT UPLOADED';
-    if (status?.toLowerCase() === 'completed') return 'TEST DONE';
-    if (status?.toLowerCase() === 'pending') return 'PENDING';
-    if (status?.toLowerCase() === 'cancelled') return 'CANCELLED';
+    if (status?.toLowerCase() === 'Test Done' && reportFile) return 'REPORT UPLOADED';
+    if (status?.toLowerCase() === 'Test Done') return 'TEST DONE';
+    if (status?.toLowerCase() === 'Pending') return 'PENDING';
+    if (status?.toLowerCase() === 'Cancelled') return 'CANCELLED';
     return status?.toUpperCase() || 'UNKNOWN';
   };
 
   // Status color mapping
   const getStatusColor = (status, reportFile) => {
-    if (status?.toLowerCase() === 'completed' && reportFile) return '#007bff';
-    if (status?.toLowerCase() === 'completed') return '#28a745';
-    if (status?.toLowerCase() === 'pending') return '#ffc107';
-    if (status?.toLowerCase() === 'cancelled') return '#dc3545';
+    if (status?.toLowerCase() === 'Test Done' && reportFile) return '#007bff';
+    if (status?.toLowerCase() === 'Test Done') return '#28a745';
+    if (status?.toLowerCase() === 'Pending') return '#ffc107';
+    if (status?.toLowerCase() === 'Cancelled') return '#dc3545';
     return '#6c757d';
   };
 

@@ -6,6 +6,7 @@ const {
   calculateStraightLineDistance,
   getAddressFromCoordinates 
 } = require('../utils/googleMaps');
+const authMiddleware = require('../middleware/auth');
 
 // Simple keyword to specialty mapping
 const keywordToSpecialty = {
@@ -37,7 +38,7 @@ router.get('/search', async (req, res) => {
   const query = req.query.q?.toLowerCase();
   const userLat = parseFloat(req.query.lat);
   const userLon = parseFloat(req.query.lon);
-  const maxDistance = parseFloat(req.query.distance) || 500; // Default 1000km
+  const maxDistance = parseFloat(req.query.distance) || 500; // Default 500km
   const useRealTimeDistance = req.query.realTime === 'true'; // Only toggle
   
   console.log('Search query:', query);
@@ -73,7 +74,7 @@ router.get('/search', async (req, res) => {
     console.log('Doctors found before distance filter:', doctors.length);
 
     // Apply distance filtering if user location is provided
-    if (userLat && userLon && !isNaN(userLat) && !isNaN(userLon)) {
+    if (!isNaN(userLat) && !isNaN(userLon)) {
       const doctorsWithDistance = [];
 
       for (const doctor of doctors) {
@@ -134,7 +135,7 @@ router.get('/search', async (req, res) => {
 });
 
 // Route to add/update doctor location
-router.post('/:id/location', async (req, res) => {
+router.post('/:id/location', authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { address, latitude, longitude } = req.body;
 
@@ -179,7 +180,7 @@ router.get('/:id',async (req,res)=>{
   const {id} = req.params;
   
   try {
-    const doc = await Doctor.findById(id);
+    const doc = await Doctor.findById(id).select('-password');
     console.log("doc");
     if(!doc){
       return res.status(404).json({message:'Doctor not found'});

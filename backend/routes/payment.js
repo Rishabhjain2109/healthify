@@ -130,8 +130,8 @@ router.post('/verify-payment', async (req, res) => {
             await Patient.findByIdAndUpdate(patientId, { $push: { onlineAppointment: newAppointment._id } });
 
         }
-        res.status(201).json(newAppointment);
         await newAppointment.save();
+        res.status(201).json(newAppointment);
         
     } catch (error) {
         console.error(error);

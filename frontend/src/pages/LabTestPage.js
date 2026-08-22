@@ -63,28 +63,20 @@ function LabTestPage() {
         return;
       }
       setSelectedTest(test);
-      // Fetch labs from backend
+
+      // const res = await API.get('/api/labs/search', {
+      //     params: {
+      //         testName: test,
+      //         lat: userLocation?.lat,
+      //         lon: userLocation?.lon,
+      //     }
+      // });
       const res = await API.get('/api/labs');
-      let labsWithDistance = res.data.labs.map((lab) => {
-        if (lab.latitude && lab.longitude && userLocation) {
-          const R = 6371; // km
-          const dLat = (userLocation.lat - lab.latitude) * Math.PI / 180;
-          const dLon = (userLocation.lon - lab.longitude) * Math.PI / 180;
-          const a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lab.latitude * Math.PI / 180) *
-              Math.cos(userLocation.lat * Math.PI / 180) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-          lab.distance = R * c;
-        } else {
-          lab.distance = null;
-        }
-        return lab;
-      });
-      labsWithDistance.sort((a, b) => (a.distance || 99999) - (b.distance || 99999));
-      setLabs(labsWithDistance);
+      // console.log(res);
+      
+      setLabs(res.data.labs);
     } catch (err) {
+      console.log(err);
       setError('Failed to load labs.');
     }
     setLoading(false);
@@ -233,9 +225,9 @@ function LabTestPage() {
                 <div key={lab._id} style={{ background: '#fff', border: '1px solid #eee', borderRadius: 12, padding: 22, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                   <h4 style={{ marginBottom: 8 }}>{lab.labName}</h4>
                   <div style={{ color: '#555', marginBottom: 6 }}>{lab.address}</div>
-                  {lab.distance !== null && (
+                  {/* {lab.distance !== null && (
                     <div style={{ color: '#888', fontSize: 14, marginBottom: 6 }}>📍 {lab.distance.toFixed(2)} km away</div>
-                  )}
+                  )} */}
                   <button
                     onClick={() => handleBook(lab)}
                     disabled={booking && bookingLab && bookingLab._id === lab._id}
