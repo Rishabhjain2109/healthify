@@ -1,73 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const Lab = require('../models/Lab');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { getAddressFromCoordinates } = require('../utils/googleMaps');
-const LabTest = require('../models/LabTest');
+const {
+  labSignup,
+  searchLabsByTest,
+  getAllLabs
+} = require('../controllers/labsController');
 
-// Lab signup
-router.post('/signup', async (req, res) => {
-  const { managerName, labName, branchCode, email, password, confirmPassword, address, city, state, zipCode, latitude, longitude } = req.body;
-  if (!managerName || !labName || !branchCode || !email || !password || !confirmPassword) {
-    return res.status(400).json({ message: 'All fields are required.' });
-  }
-  if (password !== confirmPassword) {
-    return res.status(400).json({ message: "Passwords don't match." });
-  }
-  try {
-    let existing = await Lab.findOne({ email });
-    if (existing) {
-      return res.status(400).json({ message: 'Email already registered.' });
-    }
-    const salt = await bcrypt.genSalt(10);
-    const hashed = await bcrypt.hash(password, salt);
-    const newLab = new Lab({
-      managerName, labName, branchCode, email, password: hashed, address, city, state, zipCode, latitude, longitude
-    });
-    await newLab.save();
-    const payload = { userId: newLab._id, role: newLab.role };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
-    res.status(201).json({ token, user: { id: newLab._id, managerName, labName, email, role: newLab.role } });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error.' });
-  }
-});
+// Lab Signup
+router.post('/signup', labSignup);
 
-router.get('/search', async (req, res) => {
-  const { testName, lat, lon, maxDistance } = req.query;
-  if (!testName) return res.status(400).json({ message: 'Test name required' });
-  try {
-    const test = await LabTest.findOne({ testName: { $regex: testName, $options: 'i' } }).populate('labs', '-password');
-    if (!test) return res.status(404).json({ message: 'Test not found' });
-    let labs = test.labs;
-    if (lat && lon) {
-      labs = labs.map(lab => {
-        if (lab.latitude && lab.longitude) {
-          lab = lab.toObject();
-          lab.distance = calculateStraightLineDistance(parseFloat(lat), parseFloat(lon), lab.latitude, lab.longitude);
-        }
-        return lab;
-      });
-      labs = labs.filter(lab => lab.distance !== undefined && lab.distance <= (parseFloat(maxDistance) || 100));
-      labs.sort((a, b) => a.distance - b.distance);
-    }
-    res.json({ test: test.testName, price: test.price, labs });
-  } catch (err) {
-    console.log(err);
-    
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+// Search labs offering a specific test
+router.get('/search', searchLabsByTest);
 
 // Get all labs
-router.get('/', async (req, res) => {
-  try {
-    const labs = await Lab.find().select('-password');
-    res.json({ labs });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+router.get('/', getAllLabs);
 
-module.exports = router; 
+module.exports = router;
