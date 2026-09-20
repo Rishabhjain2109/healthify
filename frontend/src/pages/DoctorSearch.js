@@ -14,6 +14,10 @@ function DoctorSearch() {
   const [useRealTimeDistance, setUseRealTimeDistance] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState(null);
+
   const commonSymptoms = [
     { keyword: 'heart', label: 'Heart Problems' },
     { keyword: 'brain', label: 'Brain/Nervous System' },
@@ -22,7 +26,7 @@ function DoctorSearch() {
     { keyword: 'child', label: 'Child Health' },
     { keyword: 'mind', label: 'Mental Health' },
     { keyword: 'cancer', label: 'Cancer' },
-    { keyword: 'ear', label: 'Ear/Nose/Throat' }
+    { keyword: 'ear', label: 'Ear/Nose/Throat' },
   ];
 
   // Get user location on component mount
@@ -37,7 +41,7 @@ function DoctorSearch() {
         (position) => {
           setUserLocation({
             lat: position.coords.latitude,
-            lon: position.coords.longitude
+            lon: position.coords.longitude,
           });
           setLocationLoading(false);
         },
@@ -51,52 +55,65 @@ function DoctorSearch() {
     }
   };
 
-  // Load all doctors on component mount
+  // Load overall system doctors count on component mount
   useEffect(() => {
     const loadDoctors = async () => {
       try {
-        const res = await axios.get('/api/doctors');
-        console.log('All doctors:', res.data);
-        setStats({ total: res.data.doctors.length, matched: 0 });
+        const res = await axios.get('/api/doctors?page=1&limit=1');
+        console.log('Initial total fetch:', res.data);
+        setStats({
+          total: res.data.pagination?.totalItems || res.data.doctors?.length || 0,
+          matched: 0,
+        });
       } catch (err) {
-        console.error('Error loading doctors:', err);
+        console.error('Error loading doctor count:', err);
       }
     };
     loadDoctors();
   }, []);
 
-  const handleSearch = async () => {
-    if (!query.trim()) {
+  // Main search function accepting explicit target page
+  const handleSearch = async (searchQuery = query, pageToFetch = 1) => {
+    const activeQuery = searchQuery.trim();
+
+    if (!activeQuery) {
       setError('Please enter a symptom or disease');
       return;
     }
-    
+
     setError('');
     setLoading(true);
+
     try {
-      console.log('Making search request for query:', query);
-      const token = localStorage.getItem('token');
-      console.log('Token exists:', !!token);
-      
-      // Build search URL with location parameters
-      let searchUrl = `/api/doctors/search?q=${encodeURIComponent(query)}`;
+      console.log(`Searching for "${activeQuery}", Page: ${pageToFetch}`);
+
+      // Build search URL with location and pagination parameters
+      let searchUrl = `/api/doctors/search?q=${encodeURIComponent(
+        activeQuery
+      )}&page=${pageToFetch}&limit=10`;
+
       if (userLocation && showDistanceFilter) {
         searchUrl += `&lat=${userLocation.lat}&lon=${userLocation.lon}&distance=${maxDistance}`;
         if (useRealTimeDistance) {
           searchUrl += '&realTime=true';
         }
       }
-      
-      const res = await axios.get(searchUrl);//this line sends the get request to backend
+
+      const res = await axios.get(searchUrl);
       console.log('Search response:', res.data);
-      
+
       if (!res.data || !Array.isArray(res.data.doctors)) {
         throw new Error('Invalid response format from server');
       }
-      
+
       setDoctors(res.data.doctors);
-      setStats({ total: res.data.total, matched: res.data.matched });
-      
+      setPagination(res.data.pagination || null);
+      setCurrentPage(pageToFetch);
+      setStats({
+        total: res.data.total || 0,
+        matched: res.data.matched || 0,
+      });
+
       if (res.data.doctors.length === 0) {
         setError('No doctors found for this condition. Please try a different search term.');
       }
@@ -104,10 +121,11 @@ function DoctorSearch() {
       console.error('Search error details:', {
         message: err.message,
         response: err.response?.data,
-        status: err.response?.status
+        status: err.response?.status,
       });
       setError(err.response?.data?.message || 'Search failed. Please try again.');
       setDoctors([]);
+      setPagination(null);
     } finally {
       setLoading(false);
     }
@@ -115,7 +133,13 @@ function DoctorSearch() {
 
   const handleSymptomClick = (keyword) => {
     setQuery(keyword);
-    handleSearch();
+    handleSearch(keyword, 1);
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || (pagination && newPage > pagination.totalPages)) return;
+    handleSearch(query, newPage);
+    window.scrollTo({ top: 300, behavior: 'smooth' });
   };
 
   const toggleDistanceFilter = () => {
@@ -125,18 +149,20 @@ function DoctorSearch() {
   return (
     <div style={styles.container}>
       <h2 style={styles.title}>Find a Doctor</h2>
-      <p style={styles.subtitle}>Search for doctors based on your symptoms or condition</p>
-      
+      <p style={styles.subtitle}>
+        Search for doctors based on your symptoms or condition
+      </p>
+
       <div style={styles.searchContainer}>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch(query, 1)}
           placeholder="Enter your symptoms or condition (e.g., heart, skin, brain)"
           style={styles.input}
         />
-        <button 
-          onClick={handleSearch} 
+        <button
+          onClick={() => handleSearch(query, 1)}
           style={styles.searchButton}
           disabled={loading}
         >
@@ -146,13 +172,13 @@ function DoctorSearch() {
 
       {/* Distance Filter Section */}
       <div style={styles.filterSection}>
-        <button 
+        <button
           onClick={toggleDistanceFilter}
           style={styles.filterToggleButton}
         >
           {showDistanceFilter ? 'Hide' : 'Show'} Distance Filter
         </button>
-        
+
         {showDistanceFilter && (
           <div style={styles.filterOptions}>
             <div style={styles.locationStatus}>
@@ -160,18 +186,22 @@ function DoctorSearch() {
                 <p>Getting your location...</p>
               ) : userLocation ? (
                 <p style={styles.locationText}>
-                  📍 Location detected: {userLocation.lat.toFixed(4)}, {userLocation.lon.toFixed(4)}
+                  📍 Location detected: {userLocation.lat.toFixed(4)},{' '}
+                  {userLocation.lon.toFixed(4)}
                 </p>
               ) : (
                 <div>
                   <p>Location not available</p>
-                  <button onClick={getCurrentLocation} style={styles.locationButton}>
+                  <button
+                    onClick={getCurrentLocation}
+                    style={styles.locationButton}
+                  >
                     Enable Location
                   </button>
                 </div>
               )}
             </div>
-            
+
             {userLocation && (
               <div style={styles.distanceControls}>
                 <label style={styles.label}>
@@ -185,7 +215,7 @@ function DoctorSearch() {
                     style={styles.rangeInput}
                   />
                 </label>
-                
+
                 <div style={styles.checkboxGroup}>
                   <label style={styles.checkboxLabel}>
                     <input
@@ -197,10 +227,11 @@ function DoctorSearch() {
                     Use real-time distance (Google Maps)
                   </label>
                 </div>
-                
+
                 {useRealTimeDistance && (
                   <p style={styles.infoText}>
-                    ℹ️ Real-time distance uses Google Maps API to calculate actual driving distance and time
+                    ℹ️ Real-time distance uses Google Maps API to calculate
+                    actual driving distance and time
                   </p>
                 )}
               </div>
@@ -233,45 +264,119 @@ function DoctorSearch() {
       </div>
 
       {error && <p style={styles.error}>{error}</p>}
-      
+
       {doctors.length > 0 && (
         <div style={styles.results}>
           <h3>Available Doctors:</h3>
+
           <div style={styles.doctorList}>
             {doctors.map((doc) => (
-              <Link to={`/doctors/${doc._id}`} key={doc._id} style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div style={styles.doctorCard}>
-                <h4 style={styles.doctorName}>{doc.fullname}</h4>
-                <p style={styles.specialty}>Specialty: {doc.specialty}</p>
-                {doc.distance && (
-                  <div style={styles.distanceInfo}>
-                    <p style={styles.distance}>📍 {doc.distance}</p>
-                    {doc.duration && doc.duration !== 'N/A' && (
-                      <p style={styles.duration}>⏱️ {doc.duration}</p>
-                    )}
-                  </div>
-                )}
-                {doc.address && (
-                  <p style={styles.address}>🏥 {doc.address}</p>
-                )}
-                <button style={styles.bookButton}>Book Appointment</button>
-                {/* Get Directions Button - now a real button */}
-                {userLocation && doc.latitude && doc.longitude && (
-                  <button
-                    style={styles.directionsButton}
-                    onClick={e => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      window.open(`https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lon}&destination=${doc.latitude},${doc.longitude}`, '_blank', 'noopener,noreferrer');
-                    }}
-                  >
-                    Get Directions
-                  </button>
-                )}
-              </div>
+              <Link
+                to={`/doctors/${doc._id}`}
+                key={doc._id}
+                style={{ textDecoration: 'none', color: 'inherit' }}
+              >
+                <div style={styles.doctorCard}>
+                  <h4 style={styles.doctorName}>{doc.fullname}</h4>
+                  <p style={styles.specialty}>Specialty: {doc.specialty}</p>
+
+                  {doc.distance && (
+                    <div style={styles.distanceInfo}>
+                      <p style={styles.distance}>📍 {doc.distance}</p>
+                      {doc.duration && doc.duration !== 'N/A' && (
+                        <p style={styles.duration}>⏱️ {doc.duration}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {doc.address && (
+                    <p style={styles.address}>🏥 {doc.address}</p>
+                  )}
+
+                  <button style={styles.bookButton}>Book Appointment</button>
+
+                  {/* Get Directions Button */}
+                  {userLocation && doc.latitude && doc.longitude && (
+                    <button
+                      style={styles.directionsButton}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        window.open(
+                          `https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lon}&destination=${doc.latitude},${doc.longitude}`,
+                          '_blank',
+                          'noopener,noreferrer'
+                        );
+                      }}
+                    >
+                      Get Directions
+                    </button>
+                  )}
+                </div>
               </Link>
             ))}
           </div>
+
+          {/* Pagination Component */}
+          {pagination && pagination.totalPages > 1 && (
+            <div style={styles.paginationContainer}>
+              <div style={styles.paginationControls}>
+                {/* Previous Button */}
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={!pagination.hasPrevPage || loading}
+                  style={{
+                    ...styles.pageButton,
+                    opacity: !pagination.hasPrevPage || loading ? 0.5 : 1,
+                    cursor: !pagination.hasPrevPage || loading ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  &larr; Prev
+                </button>
+
+                {/* Page Number Buttons */}
+                {Array.from({ length: pagination.totalPages }, (_, index) => {
+                  const pageNum = index + 1;
+                  const isActive = pageNum === currentPage;
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      disabled={loading}
+                      style={{
+                        ...styles.pageNumberButton,
+                        backgroundColor: isActive ? '#3498db' : '#ffffff',
+                        color: isActive ? '#ffffff' : '#2c3e50',
+                        borderColor: isActive ? '#3498db' : '#ddd',
+                      }}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+
+                {/* Next Button */}
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={!pagination.hasNextPage || loading}
+                  style={{
+                    ...styles.pageButton,
+                    opacity: !pagination.hasNextPage || loading ? 0.5 : 1,
+                    cursor: !pagination.hasNextPage || loading ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  Next &rarr;
+                </button>
+              </div>
+
+              <p style={styles.paginationInfo}>
+                Page <strong>{pagination.currentPage}</strong> of{' '}
+                <strong>{pagination.totalPages}</strong> (Showing{' '}
+                {doctors.length} of {pagination.totalItems} doctors)
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -456,6 +561,42 @@ const styles = {
     textDecoration: 'none',
     cursor: 'pointer',
     fontWeight: 'bold',
+  },
+  paginationContainer: {
+    marginTop: '35px',
+    paddingTop: '20px',
+    borderTop: '1px solid #eee',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  paginationControls: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  pageButton: {
+    padding: '8px 16px',
+    backgroundColor: '#f8f9fa',
+    border: '1px solid #ccc',
+    borderRadius: '4px',
+    color: '#2c3e50',
+    fontWeight: 'bold',
+  },
+  pageNumberButton: {
+    padding: '8px 14px',
+    border: '1px solid #ddd',
+    borderRadius: '4px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+  },
+  paginationInfo: {
+    color: '#7f8c8d',
+    fontSize: '14px',
+    margin: 0,
   },
 };
 

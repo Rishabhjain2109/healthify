@@ -20,19 +20,40 @@ const keywordToSpecialty = {
   throat: 'ENT'
 };
 
-// Get all doctors
+// Get all doctors (with pagination)
 exports.getAllDoctors = async (req, res) => {
   try {
-    const doctors = await Doctor.find().select('-password');
-    console.log('Total doctors in database:', doctors.length);
-    return res.status(200).json({ doctors });
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const skip = (page - 1) * limit;
+
+    const totalDoctors = await Doctor.countDocuments({ role: 'doctor' });
+
+    const doctors = await Doctor.find({ role: 'doctor' })
+      .select('-password')
+      .skip(skip)
+      .limit(limit);
+
+    console.log('Total doctors in database:', totalDoctors);
+
+    return res.status(200).json({
+      doctors,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalDoctors / limit),
+        pageSize: doctors.length,
+        totalItems: totalDoctors,
+        hasNextPage: skip + doctors.length < totalDoctors,
+        hasPrevPage: page > 1,
+      },
+    });
   } catch (err) {
     console.error('Error fetching all doctors:', err);
     return res.status(500).json({ message: 'Server error' });
   }
 };
 
-// Search doctors by keyword, specialty, and distance
+// Search doctors by keyword, specialty, and distance (with pagination)
 exports.searchDoctors = async (req, res) => {
   const query = req.query.q?.toLowerCase();
   const userLat = parseFloat(req.query.lat);
@@ -40,10 +61,15 @@ exports.searchDoctors = async (req, res) => {
   const maxDistance = parseFloat(req.query.distance) || 500; // Default 500km
   const useRealTimeDistance = req.query.realTime === 'true';
 
+  // Pagination params
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 10;
+  const skip = (page - 1) * limit;
+
   console.log('Search query:', query);
   console.log('User location:', { lat: userLat, lon: userLon });
   console.log('Max distance:', maxDistance, 'km');
-  console.log('Use real-time distance:', useRealTimeDistance);
+  console.log('Page:', page, 'Limit:', limit);
 
   if (!query) {
     return res.status(400).json({ message: 'Query is required' });
@@ -56,19 +82,17 @@ exports.searchDoctors = async (req, res) => {
     role: 'doctor',
     $or: [
       matchedSpecialty ? { specialty: matchedSpecialty } : null,
-      { fullname: { $regex: query,$options: 'i' } }
-    ].filter(Boolean)
+      { fullname: { $regex: query,$options: 'i' } },
+    ].filter(Boolean),
   };
-
-  console.log('Search criteria:', JSON.stringify(searchCriteria, null, 2));
 
   try {
     const totalDoctors = await Doctor.countDocuments();
-    console.log('Total doctors in database:', totalDoctors);
 
     let doctors = await Doctor.find(searchCriteria).select('-password');
     console.log('Doctors found before distance filter:', doctors.length);
 
+    // Filter and sort by distance if user coordinates exist
     if (!isNaN(userLat) && !isNaN(userLon)) {
       const doctorsWithDistance = [];
 
@@ -78,27 +102,30 @@ exports.searchDoctors = async (req, res) => {
 
           if (useRealTimeDistance && process.env.GOOGLE_MAPS_API_KEY) {
             distanceInfo = await calculateRealTimeDistance(
-              userLat, userLon, 
-              doctor.latitude, doctor.longitude
+              userLat,
+              userLon,
+              doctor.latitude,
+              doctor.longitude
             );
           }
 
           if (!distanceInfo) {
             const straightLineDistance = calculateStraightLineDistance(
-              userLat, userLon, 
-              doctor.latitude, doctor.longitude
+              userLat,
+              userLon,
+              doctor.latitude,
+              doctor.longitude
             );
             distanceInfo = {
               distance: `${straightLineDistance.toFixed(1)} km`,
               distanceValue: straightLineDistance * 1000,
               duration: 'N/A',
-              durationValue: 0
+              durationValue: 0,
             };
           }
 
           const distanceInKm = distanceInfo.distanceValue / 1000;
           if (distanceInKm <= maxDistance) {
-            // Convert to lean JS object to set custom fields dynamically
             const doctorObj = doctor.toObject();
             doctorObj.distance = distanceInfo.distance;
             doctorObj.distanceValue = distanceInfo.distanceValue;
@@ -108,18 +135,32 @@ exports.searchDoctors = async (req, res) => {
         }
       }
 
+      // Sort by nearest distance first
       doctors = doctorsWithDistance.sort((a, b) => a.distanceValue - b.distanceValue);
     }
 
-    console.log('Doctors found after distance filter:', doctors.length);
+    const matchedTotal = doctors.length;
 
-    return res.status(200).json({ 
-      doctors,
+    // Slice array for pagination after distance filter/sorting
+    const paginatedDoctors = doctors.slice(skip, skip + limit);
+
+    console.log('Doctors returned for page', page, ':', paginatedDoctors.length);
+
+    return res.status(200).json({
+      doctors: paginatedDoctors,
       total: totalDoctors,
-      matched: doctors.length,
-      userLocation: userLat && userLon ? { lat: userLat, lon: userLon } : null,
+      matched: matchedTotal,
+      userLocation: !isNaN(userLat) && !isNaN(userLon) ? { lat: userLat, lon: userLon } : null,
       maxDistance: maxDistance,
-      realTimeDistance: useRealTimeDistance
+      realTimeDistance: useRealTimeDistance,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(matchedTotal / limit),
+        pageSize: paginatedDoctors.length,
+        totalItems: matchedTotal,
+        hasNextPage: skip + paginatedDoctors.length < matchedTotal,
+        hasPrevPage: page > 1,
+      },
     });
   } catch (err) {
     console.error('Error searching doctors:', err);
